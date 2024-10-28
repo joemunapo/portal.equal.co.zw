@@ -183,6 +183,9 @@ Ajax.post(
                     document.getElementById("hotspot-selector").innerHTML = options;
                     hotspotChang(globalConfig.hotspotTypes[0]);
                     window.authType = globalConfig.hotspotTypes[0];
+                    if(globalConfig.hotspotTypes.length === 1){
+                        document.getElementById("hotspot-section").style.display = "none";
+                    }
                     break;
             }
         }
