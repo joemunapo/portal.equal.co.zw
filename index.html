@@ -1,139 +1,94 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="index.css" type="text/css" />
-    <script type="text/javascript" src="index.js"></script>
+    <title>Equal WiFi</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Assuming you'll create style.css -->
   </head>
-  <body class="portal">
-    <div class="logo-img">
-      <svg
-        width="98"
-        height="98"
-        viewBox="0 0 98 98"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+  <body>
+    <!-- Video Background with Fade Overlay -->
+    <div class="video-container">
+      <video
+        id="background-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        poster="background.webp"
       >
-        <g clip-path="url(#clip0_6_2)">
-          <path
-            d="M48.52 97.04C75.3169 97.04 97.04 75.3169 97.04 48.52C97.04 21.7231 75.3169 0 48.52 0C21.7231 0 0 21.7231 0 48.52C0 75.3169 21.7231 97.04 48.52 97.04Z"
-            fill="#5D6AB2"
-          />
-          <path
-            d="M33.87 48.6C31.87 50.59 29.88 52.59 27.88 54.59C26.7 55.77 25.22 56.35 22.8 56.28C21.11 56.18 19.32 55.07 18.25 52.85C17.13 50.51 17.7 47.98 19.39 46.27C22.21 43.4 25.05 40.56 27.89 37.71C31.97 33.63 36.05 29.55 40.13 25.47C42.21 23.39 44.26 21.27 46.41 19.25C47.6 18.13 49.12 17.54 50.76 17.71C53.46 17.98 55.92 19.88 56.26 22.99C56.48 24.99 55.84 26.64 54.46 28.03C50.96 31.55 47.44 35.06 43.93 38.57C40.58 41.92 37.23 45.26 33.88 48.6H33.87Z"
-            fill="white"
-          />
-          <path
-            d="M51.01 37.7999C53.35 35.4599 55.62 33.0499 58.06 30.8199C60.61 28.4799 64.72 28.9599 66.74 31.8199C68.32 34.0499 68.24 36.7799 66.62 38.8699C65.97 39.7099 65.14 40.4099 64.38 41.1699C60.95 44.5999 57.52 48.0199 54.09 51.4499C53.04 52.4999 51.98 53.5499 50.94 54.6199C49.89 55.6799 48.28 56.3699 46.83 56.2699C44.07 56.3799 41.88 54.5199 41.14 52.0699C40.48 49.8799 41.02 47.8799 42.63 46.2399C45.41 43.4099 48.22 40.6199 51.02 37.8199L51.01 37.7999Z"
-            fill="white"
-          />
-          <path
-            d="M79.06 44.9101C79.26 45.4701 79.37 46.0701 79.37 46.6801C79.3 48.5101 78.52 49.9801 77.21 51.2401C75.6 52.7801 74.04 54.3801 72.46 55.9501C71.02 57.3801 69.56 58.8001 68.12 60.2301C66.51 61.8501 64.91 63.4801 63.3 65.1001C61.56 66.8501 59.81 68.5901 58.06 70.3301C56.3 72.0901 54.55 73.8501 52.79 75.6001C52.07 76.3201 51.33 77.0101 50.61 77.7301C49.79 78.5601 48.8 78.9801 47.66 79.2301C46.11 79.5801 44.74 79.1701 43.46 78.4201C42.52 77.8701 41.83 76.9801 41.06 76.2201C38.73 73.9101 36.43 71.5901 34.11 69.2701C32.95 68.1101 31.73 67.0101 30.66 65.7801C29.66 64.6401 29.24 63.2401 29.31 61.7001C29.41 59.6201 30.41 58.0401 32.09 56.9601C33.21 56.2401 34.51 55.9601 35.89 56.1101C37.52 56.2901 38.75 57.1301 39.86 58.2501C41.83 60.2301 43.81 62.2001 45.78 64.1801C46.93 65.3401 46.7 65.1101 47.68 64.1401C50.82 61.0301 53.95 57.9101 57.08 54.7901C60.22 51.6501 63.33 48.4801 66.48 45.3501C67.63 44.2101 68.69 42.9901 69.95 41.9701C71.03 41.0901 72.31 40.7301 73.71 40.8201C76.39 41.0001 78.15 42.4201 79.05 44.9001L79.06 44.9101Z"
-            fill="white"
-          />
-        </g>
-        <defs>
-          <clipPath id="clip0_6_2">
-            <rect width="97.04" height="97.04" fill="white" />
-          </clipPath>
-        </defs>
-      </svg>
+        <source src="link.mp4" type="video/mp4" />
+      </video>
+      <div id="fade-overlay"></div>
     </div>
+
     <div class="container">
-      <div>
-        <h1>Equal WiFi</h1>
-        <h3>
-          Customer Support: <a class="tel" href="tel:+26377">+263712752623</a>
-        </h3>
-        <br />
-        <hr />
-        <br />
-      </div>
-      <div class="oper-section-outer">
-        <div class="oper-section-inner">
-          <span id="oper-hint" style="color: white"></span>
-          <div id="hotspot-section">
-            <select id="hotspot-selector" class="oper-section-item"></select>
-          </div>
-          <form id="login-form">
-            <div id="input-voucher">
-              <input
-                id="voucherCode"
-                class="oper-section-item input"
-                name="voucherCode"
-                type="text"
-                placeholder="Enter Equal Voucher"
-              />
-            </div>
-            <div id="input-user">
-              <input
-                id="username"
-                class="oper-section-item input"
-                name="username"
-                type="text"
-                placeholder="Username"
-              />
-            </div>
-            <div id="input-password" class="user-input">
-              <input
-                id="password"
-                class="oper-section-item input"
-                name="password"
-                type="password"
-                placeholder="Password"
-              />
-            </div>
-            <div id="input-simple">
-              <input
-                id="simplePassword"
-                class="password oper-section-item"
-                name="simplePassword"
-                type="password"
-                placeholder="Password"
-              />
-            </div>
-            <div id="input-phone-num">
-              <span class="add">+</span
-              ><input id="country-code" class="input" /><input
-                id="phone-number"
-                class="input"
-                name="phone-number"
-                type="text"
-                placeholder="Phone Number"
-              />
-            </div>
-            <div id="input-verify-code">
-              <input
-                id="verify-code"
-                class="input"
-                name="verify-code"
-                type="text"
-                placeholder="Verification Code"
-              /><button id="get-code" class="button">Get Code</button>
-            </div>
-            <input name="clientMac" id="cMac" style="display: none" />
-            <input
-              name="radiusSvrIp"
-              id="radiusServerIp"
-              style="display: none"
+      <div class="logo-container">
+        <svg
+          class="logo"
+          viewBox="0 0 98 98"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g clip-path="url(#clip0_6_2)">
+            <path
+              d="M48.52 97.04C75.3169 97.04 97.04 75.3169 97.04 48.52C97.04 21.7231 75.3169 0 48.52 0C21.7231 0 0 21.7231 0 48.52C0 75.3169 21.7231 97.04 48.52 97.04Z"
+              fill="#5D6AB2"
             />
-          </form>
-          <div id="button-area">
-            <button id="button-facebook" class="button oper-section-item">
-              Facebook
-            </button>
-            <button id="button-login" class="button oper-section-item">
-              Connect
-            </button>
-          </div>
-        </div>
+            <path
+              d="M33.87 48.6C31.87 50.59 29.88 52.59 27.88 54.59C26.7 55.77 25.22 56.35 22.8 56.28C21.11 56.18 19.32 55.07 18.25 52.85C17.13 50.51 17.7 47.98 19.39 46.27C22.21 43.4 25.05 40.56 27.89 37.71C31.97 33.63 36.05 29.55 40.13 25.47C42.21 23.39 44.26 21.27 46.41 19.25C47.6 18.13 49.12 17.54 50.76 17.71C53.46 17.98 55.92 19.88 56.26 22.99C56.48 24.99 55.84 26.64 54.46 28.03C50.96 31.55 47.44 35.06 43.93 38.57C40.58 41.92 37.23 45.26 33.88 48.6H33.87Z"
+              fill="white"
+            />
+            <path
+              d="M51.01 37.7999C53.35 35.4599 55.62 33.0499 58.06 30.8199C60.61 28.4799 64.72 28.9599 66.74 31.8199C68.32 34.0499 68.24 36.7799 66.62 38.8699C65.97 39.7099 65.14 40.4099 64.38 41.1699C60.95 44.5999 57.52 48.0199 54.09 51.4499C53.04 52.4999 51.98 53.5499 50.94 54.6199C49.89 55.6799 48.28 56.3699 46.83 56.2699C44.07 56.3799 41.88 54.5199 41.14 52.0699C40.48 49.8799 41.02 47.8799 42.63 46.2399C45.41 43.4099 48.22 40.6199 51.02 37.8199L51.01 37.7999Z"
+              fill="white"
+            />
+            <path
+              d="M79.06 44.9101C79.26 45.4701 79.37 46.0701 79.37 46.6801C79.3 48.5101 78.52 49.9801 77.21 51.2401C75.6 52.7801 74.04 54.3801 72.46 55.9501C71.02 57.3801 69.56 58.8001 68.12 60.2301C66.51 61.8501 64.91 63.4801 63.3 65.1001C61.56 66.8501 59.81 68.5901 58.06 70.3301C56.3 72.0901 54.55 73.8501 52.79 75.6001C52.07 76.3201 51.33 77.0101 50.61 77.7301C49.79 78.5601 48.8 78.9801 47.66 79.2301C46.11 79.5801 44.74 79.1701 43.46 78.4201C42.52 77.8701 41.83 76.9801 41.06 76.2201C38.73 73.9101 36.43 71.5901 34.11 69.2701C32.95 68.1101 31.73 67.0101 30.66 65.7801C29.66 64.6401 29.24 63.2401 29.31 61.7001C29.41 59.6201 30.41 58.0401 32.09 56.9601C33.21 56.2401 34.51 55.9601 35.89 56.1101C37.52 56.2901 38.75 57.1301 39.86 58.2501C41.83 60.2301 43.81 62.2001 45.78 64.1801C46.93 65.3401 46.7 65.1101 47.68 64.1401C50.82 61.0301 53.95 57.9101 57.08 54.7901C60.22 51.6501 63.33 48.4801 66.48 45.3501C67.63 44.2101 68.69 42.9901 69.95 41.9701C71.03 41.0901 72.31 40.7301 73.71 40.8201C76.39 41.0001 78.15 42.4201 79.05 44.9001L79.06 44.9101Z"
+              fill="white"
+            />
+          </g>
+          <defs>
+            <clipPath id="clip0_6_2">
+              <rect width="97.04" height="97.04" fill="white" />
+            </clipPath>
+          </defs>
+        </svg>
       </div>
-      <div>
-        <br />
+
+      <div class="card">
+        <h1>Equal WiFi</h1>
+        <div class="support">
+          Customer Support: <a href="tel:+263712752623">+263712752623</a>
+        </div>
         <hr />
-        <br />
-        <table class="pricing-table">
+
+        <div class="hint" id="oper-hint"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <input
+              id="voucherCode"
+              class="input"
+              name="voucherCode"
+              type="text"
+              placeholder="Enter Equal Voucher"
+            />
+          </div>
+          <input name="clientMac" id="cMac" style="display: none" />
+          <!-- Used by original portal logic -->
+          <input name="radiusSvrIp" id="radiusServerIp" style="display: none" />
+          <!-- Used by original portal logic -->
+          <button type="button" id="button-login" class="button">
+            Connect
+          </button>
+          <button type="button" id="button-ecocash" class="button secondary">
+            Buy Voucher with EcoCash
+          </button>
+        </form>
+
+        <table id="voucher-display-table">
           <thead>
             <tr>
               <th>Data Limit</th>
@@ -141,64 +96,278 @@
               <th>Price</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="voucher-display-tbody">
             <tr>
-              <td>2GB</td>
-              <td>3 days</td>
-              <td>$0.50</td>
-            </tr>
-            <tr>
-              <td>5GB</td>
-              <td>7 days</td>
-              <td>$1.00</td>
-            </tr>
-            <tr>
-              <td>10GB</td>
-              <td>7 days</td>
-              <td>$2.00</td>
-            </tr>
-            <tr>
-              <td>25GB</td>
-              <td>15 days</td>
-              <td>$5.00</td>
-            </tr>
-            <tr>
-              <td>Unlimited</td>
-              <td>1 day</td>
-              <td>$1.00</td>
-            </tr>
-            <tr>
-              <td>Unlimited</td>
-              <td>7 days</td>
-              <td>$5.00</td>
-            </tr>
-            <tr>
-              <td colspan="3" style="text-align: center; font-weight: bold">
-                Unlimited and Fast Internet
+              <td colspan="3" style="text-align: center">
+                Loading packages...
               </td>
             </tr>
           </tbody>
+          <tfoot id="voucher-display-tfoot">
+            <tr>
+              <td colspan="3">Unlimited and Fast Internet</td>
+            </tr>
+          </tfoot>
         </table>
-        <br />
-        <div class="footer">
-          <p>Powered by:</p>
-          <a rel="noopener noreferrer" target="_blank" href="http://xash.co.zw">
-            Xash
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="currentColor"
-            >
-              <path
-                d="M14 3h7v7h-2V6.41l-9.59 9.59-1.41-1.41L17.59 5H14V3zm-1 5v2H5v10h10v-8h2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h8z"
-              />
-            </svg>
-          </a>
-          <p>Vouchers available in any Xash Dealer</p>
-        </div>
+      </div>
+
+      <div class="footer">
+        <p>Powered by:</p>
+        <a href="http://xash.co.zw" target="_blank" rel="noopener noreferrer">
+          Xash
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="currentColor"
+            style="vertical-align: middle"
+          >
+            <path
+              d="M14 3h7v7h-2V6.41l-9.59 9.59-1.41-1.41L17.59 5H14V3zm-1 5v2H5v10h10v-8h2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h8z"
+            />
+          </svg>
+        </a>
+        <p>Vouchers available in any Xash Dealer</p>
       </div>
     </div>
+
+    <!-- Ecocash Modal -->
+    <div class="modal" id="ecocash-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Buy WiFi Voucher</h2>
+          <button class="close-modal" id="close-modal">×</button>
+        </div>
+        <div class="modal-hint" id="modal-hint"></div>
+        <form id="ecocash-form">
+          <div class="form-group">
+            <select id="voucher-package" class="input" required>
+              <option value="" disabled selected>Loading packages...</option>
+              <!-- Will be populated via JS -->
+            </select>
+          </div>
+          <div class="form-group">
+            <input
+              type="tel"
+              id="ecocash-number"
+              class="input"
+              placeholder="EcoCash Number (e.g. 0771234567)"
+              required
+              pattern="^(07[7-8]\d{7}|2637[7-8]\d{7}|\+2637[7-8]\d{7})$"
+              title="Enter a valid EcoCash number (077/078...)"
+            />
+          </div>
+          <div class="form-group">
+            <input
+              type="tel"
+              id="notification-number"
+              class="input"
+              placeholder="SMS Notification Number (Optional)"
+              pattern="^(07\d{8}|2637\d{8}|\+2637\d{8})$"
+              title="Enter a valid phone number"
+            />
+          </div>
+          <button type="button" id="submit-ecocash" class="button">
+            Pay Now
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var video = document.getElementById("background-video");
+        var videoContainer = document.querySelector(".video-container");
+        var fadeOverlay = document.getElementById("fade-overlay");
+        var videoPlaying = false;
+        var playAttempted = false;
+
+        // Set video to quarter speed
+        video.playbackRate = 0.25;
+
+        // Function to enable video background
+        function enableVideo() {
+          if (!videoPlaying) {
+            videoPlaying = true;
+            document.body.classList.add("video-active");
+            document.body.classList.remove("image-fallback");
+            videoContainer.style.opacity = "1";
+          }
+        }
+
+        // Function to use image fallback
+        function useImageFallback() {
+          videoPlaying = false;
+          document.body.classList.remove("video-active");
+          document.body.classList.add("image-fallback");
+          videoContainer.style.opacity = "0";
+        }
+
+        // Initial attempt to play the video
+        function attemptVideoPlayback() {
+          if (playAttempted) return;
+          playAttempted = true;
+
+          // Try to play video
+          var playPromise = video.play();
+
+          if (playPromise !== undefined) {
+            playPromise
+              .then(function () {
+                // Video started playing successfully
+                console.log("Video playing successfully");
+                video.playbackRate = 0.25; // Ensure slow playback is set after successful play
+                enableVideo();
+
+                // Add playing event to confirm it's actually playing
+                video.addEventListener("playing", function () {
+                  enableVideo();
+                });
+
+                // Monitor if video stalls or fails after initially playing
+                video.addEventListener("stalled", function () {
+                  console.log("Video stalled");
+                  useImageFallback();
+                });
+              })
+              .catch(function (error) {
+                // Autoplay was prevented
+                console.log("Video autoplay prevented:", error);
+                useImageFallback();
+              });
+          } else {
+            // Older browsers might not return a promise
+            console.log("Browser doesn't return play promise");
+
+            // Set a timeout to check if video is actually playing
+            setTimeout(function () {
+              if (video.currentTime > 0) {
+                video.playbackRate = 0.25; // Set slow playback if playing
+                enableVideo();
+              } else {
+                useImageFallback();
+              }
+            }, 500);
+          }
+        }
+
+        // Set a failsafe timeout - if video hasn't started playing within 2 seconds, use image
+        var failsafeTimeout = setTimeout(function () {
+          if (!videoPlaying) {
+            console.log("Failsafe timeout - video not playing after 2s");
+            useImageFallback();
+          }
+        }, 2000);
+
+        // Handle iOS and similar devices that require user interaction
+        function handleUserInteraction() {
+          if (!videoPlaying) {
+            video
+              .play()
+              .then(function () {
+                video.playbackRate = 0.25; // Set slow playback after user interaction
+                enableVideo();
+              })
+              .catch(function () {
+                useImageFallback();
+              });
+          }
+        }
+
+        // Try video playback when metadata is loaded
+        video.addEventListener("loadedmetadata", function () {
+          attemptVideoPlayback();
+        });
+
+        // Enable on interaction for iOS devices
+        document.body.addEventListener("click", handleUserInteraction, false);
+        document.body.addEventListener(
+          "touchstart",
+          handleUserInteraction,
+          false
+        );
+
+        // If video element throws error, fall back to image
+        video.addEventListener("error", function () {
+          console.log("Video error event triggered");
+          useImageFallback();
+        });
+
+        // Also attempt playback immediately
+        attemptVideoPlayback();
+
+        // For a 5-second video playing at 0.25x (takes 20 seconds to play)
+        var videoRealDuration = 5; // Original duration in seconds
+        var playbackRate = 0.25; // Current playback rate
+        var adjustedDuration = videoRealDuration / playbackRate; // Adjusted duration (20 seconds)
+
+        var fadeOutThreshold = adjustedDuration - 2; // Start fade 2 seconds before end
+        var fadeInDuration = 2; // Fade in duration at start
+
+        // Monitor video time for fade effects
+        video.addEventListener("timeupdate", function () {
+          if (!videoPlaying) return; // Skip if video isn't playing
+
+          var currentTime = video.currentTime;
+
+          // Near the end of the video
+          if (currentTime >= fadeOutThreshold) {
+            // Calculate fade progress (0 to 1)
+            var fadeRatio =
+              (currentTime - fadeOutThreshold) /
+              (video.duration - fadeOutThreshold);
+            fadeOverlay.style.opacity = Math.min(fadeRatio * 0.8, 0.8); // Max 80% opacity
+          }
+          // At the beginning of the video
+          else if (currentTime <= fadeInDuration) {
+            var fadeRatio = 1 - currentTime / fadeInDuration;
+            fadeOverlay.style.opacity = Math.min(fadeRatio * 0.8, 0.8); // Max 80% opacity
+          }
+          // Middle of the video
+          else {
+            fadeOverlay.style.opacity = 0;
+          }
+        });
+
+        // In case timeupdate events are too infrequent on some devices
+        // Force update opacity when video loops
+        video.addEventListener("seeking", function () {
+          if (video.currentTime < 0.1) {
+            fadeOverlay.style.opacity = 0.8; // Start fully faded
+            setTimeout(function () {
+              // Gradually fade out after a small delay
+              fadeOverlay.style.opacity = 0;
+            }, 300);
+          }
+        });
+
+        // Handle page visibility changes
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") {
+            // Page is now visible again, check if video should be playing
+            if (videoPlaying && video.paused) {
+              video
+                .play()
+                .then(function () {
+                  video.playbackRate = 0.25; // Ensure slow playback when resuming
+                })
+                .catch(function () {
+                  useImageFallback();
+                });
+            }
+          }
+        });
+
+        // Final playback rate adjustment after all initialization
+        setTimeout(function () {
+          if (videoPlaying) {
+            video.playbackRate = 0.25;
+          }
+        }, 2500);
+      });
+    </script>
+
+    <script src="script.js"></script>
   </body>
 </html>

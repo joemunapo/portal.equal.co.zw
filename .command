@@ -1,0 +1,1 @@
+zip -r portal.zip background.webp index.html style.css script.js link.mp4

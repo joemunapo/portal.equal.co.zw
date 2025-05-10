@@ -1,0 +1,358 @@
+/* Tailwind-inspired utility classes */
+:root {
+  --primary: #5d6ab2;
+  --primary-dark: #4a5696;
+  --text-light: #fff;
+  --text-dark: #333;
+  --error: #e53e3e;
+  --success: #38a169;
+  --info: #00aaff; /* Added info color */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+body {
+  background: url("background.webp") center center / cover no-repeat fixed; /* Ensure background.webp is in the same folder or adjust path */
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.card {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 16px;
+  padding: 24px 16px;
+  margin-top: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 36px;
+  margin-bottom: 12px;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  padding: 12px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.support {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.support a {
+  color: var(--info);
+  text-decoration: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.support a:hover {
+  background-color: rgba(0, 170, 255, 0.2);
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 12px 0;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  transition: border-color 0.2s;
+  color: var(--text-dark);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.button {
+  display: block;
+  width: 100%;
+  height: 48px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 16px;
+}
+
+.button:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+}
+.button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.button.secondary {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.button.secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.hint {
+  text-align: center;
+  font-size: 14px;
+  min-height: 20px;
+  margin-bottom: 12px;
+}
+.hint.error {
+  color: var(--error);
+}
+.hint.success {
+  color: var(--success);
+}
+.hint.info {
+  color: var(--info);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+th {
+  background-color: var(--primary);
+}
+
+tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+tr:nth-child(odd) {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* tfoot specifically for the tagline */
+tfoot tr td {
+  font-weight: bold;
+  background-color: rgba(
+    93,
+    106,
+    178,
+    0.2
+  ); /* Same as last-child style you had */
+}
+
+.footer {
+  margin-top: auto;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 16px;
+}
+
+.footer p {
+  margin: 4px 0;
+}
+
+.footer a {
+  color: #1e90ff;
+  text-decoration: none;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-content {
+  background-color: rgba(30, 30, 40, 0.95);
+  border-radius: 12px;
+  max-width: 90%;
+  width: 360px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transform: translateY(-20px);
+  transition: transform 0.3s;
+}
+
+.modal.active .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+.modal-hint {
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 10px;
+  min-height: 20px;
+}
+.modal-hint.error {
+  color: var(--error);
+}
+.modal-hint.success {
+  color: var(--success);
+}
+.modal-hint.info {
+  color: var(--info);
+}
+
+
+/* Body starts with image fallback by default */
+body.image-fallback {
+  background: url("background.webp") center center / cover no-repeat fixed;
+}
+
+/* When video is confirmed to work, switch to transparent background */
+body.video-active {
+  background: transparent;
+}
+
+/* Video container */
+.video-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1000;
+  opacity: 0; /* Start invisible until we confirm it's playing */
+  transition: opacity 0.5s ease;
+}
+
+/* Video element */
+#background-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+/* Fade overlay */
+#fade-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* Remove background image from body */
+body {
+  background: transparent;
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#background-video::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 100px 30px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
