@@ -4,7 +4,7 @@ const API_BASE_URL = (function () {
   const protocol = window.location.protocol;
 
   // Base URL with the appropriate protocol
-  let baseUrl = "https://bot.xash.co.zw/api/v1/wifi-vouchers";
+  let baseUrl = "https://botdev.xash.co.zw/api/v1/wifi-vouchers";
 
   // If we're on a secure connection but the API is not, try to use HTTPS
   if (protocol === 'https:' && baseUrl.startsWith('http:')) {

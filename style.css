@@ -380,3 +380,123 @@ body {
 .cash {
   color: #e42428; /* Red color from their logo */
 }
+
+/* EcoCash Blue Button with White/Red Text */
+#button-ecocash {
+  position: relative;
+  overflow: hidden;
+  background-color: #2557a1; /* EcoCash blue background */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  animation: blueButtonGlow 2s infinite alternate;
+}
+
+/* Rotating glow effect */
+#button-ecocash::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    rgba(228, 36, 40, 0.2),
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: rotateGlow 6s linear infinite;
+  z-index: 1;
+  opacity: 0.6;
+}
+
+#button-ecocash:hover {
+  background-color: #1e4b8f; /* Darker blue on hover */
+  box-shadow: 0 0 15px 3px rgba(37, 87, 161, 0.7);
+  transform: translateY(-2px);
+}
+
+/* Shine effect */
+#button-ecocash:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transform: skewX(-25deg);
+  transition: all 0.5s;
+  z-index: 3;
+}
+
+#button-ecocash:hover:before {
+  left: 125%;
+}
+
+/* Text styling */
+.ecocash-text {
+  position: relative;
+  z-index: 5;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1.5em;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* "Eco" is white */
+.eco {
+  color: white;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+/* "Cash" remains red */
+.cash {
+  color: #ff3a3e; /* Bright red for the "Cash" part */
+  text-shadow: 0 0 5px rgba(228, 36, 40, 0.8), 0 0 8px rgba(228, 36, 40, 0.5);
+  animation: redTextPulse 2s infinite alternate;
+}
+
+/* Button text (Buy Voucher with) is white */
+#button-ecocash {
+  color: white;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+/* Animations */
+@keyframes blueButtonGlow {
+  0% {
+    box-shadow: 0 0 8px 2px rgba(37, 87, 161, 0.5),
+      0 0 12px 2px rgba(37, 87, 161, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 12px 4px rgba(37, 87, 161, 0.7),
+      0 0 16px 4px rgba(37, 87, 161, 0.5);
+  }
+}
+
+@keyframes redTextPulse {
+  0% {
+    text-shadow: 0 0 3px rgba(228, 36, 40, 0.8), 0 0 5px rgba(228, 36, 40, 0.4);
+    filter: brightness(1);
+  }
+  100% {
+    text-shadow: 0 0 5px rgba(228, 36, 40, 1), 0 0 8px rgba(228, 36, 40, 0.7);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes rotateGlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
