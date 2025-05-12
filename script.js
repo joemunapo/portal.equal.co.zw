@@ -32,6 +32,15 @@ function showHint(elementId, message, type = "error") {
   }
 }
 
+
+function copyToClipboard(text) {
+  if (!text) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(() => showHint("oper-hint", "Voucher code copied to clipboard!", "success"))
+      .catch(err => console.error('Failed to copy: ', err));
+  }
+}
 // Helper function to sanitize voucher codes by removing all spaces
 function sanitizeVoucherCode(code) {
   if (!code) return '';
@@ -753,6 +762,7 @@ function pollTransactionStatus(transactionId, statusUrl) {
             if (receivedVoucherCode) {
               receivedVoucherCode = sanitizeVoucherCode(receivedVoucherCode);
               document.getElementById("voucherCode").value = receivedVoucherCode;
+              copyToClipboard(receivedVoucherCode);
             }
 
             setTimeout(function () {
@@ -899,9 +909,17 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   window.addEventListener("click", function (event) {
+    // Either remove this event listener completely, or make it do nothing
+    // This ensures users must use the close button explicitly
     if (event.target === modal) {
-      modal.classList.remove("active");
-      resetModal();
+      // Optional: show a hint that they should use the close button
+      showHint("modal-hint", "Please use the close button to exit", "info");
+      // The hint will disappear after a second
+      setTimeout(() => {
+        if (document.getElementById("modal-hint").textContent === "Please use the close button to exit") {
+          showHint("modal-hint", "", "info");
+        }
+      }, 1000);
     }
   });
 
