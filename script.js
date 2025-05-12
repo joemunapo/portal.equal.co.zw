@@ -63,65 +63,65 @@ function improvedFetchWithFallback(url, options, successCallback, errorCallback)
       }),
       timeoutPromise
     ])
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Network response was not ok: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      successCallback(data);
-    })
-    .catch(error => {
-      console.warn("Fetch failed, falling back to XMLHttpRequest:", error);
-
-      // Fall back to XMLHttpRequest if fetch fails
-      const xhr = new XMLHttpRequest();
-      xhr.open(options.method || 'GET', cacheBustUrl, true);
-
-      // Set headers
-      if (options.headers) {
-        Object.keys(options.headers).forEach(key => {
-          xhr.setRequestHeader(key, options.headers[key]);
-        });
-      } else {
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.setRequestHeader("Accept", "application/json");
-      }
-
-      // Add timeout handling
-      xhr.timeout = 15000;
-      xhr.ontimeout = function() {
-        errorCallback({ message: "Request timed out. Please check your connection and try again." }, 408);
-      };
-
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          try {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              const responseData = xhr.responseText ? JSON.parse(xhr.responseText) : {};
-              successCallback(responseData);
-            } else {
-              const errorData = xhr.responseText ? JSON.parse(xhr.responseText) : { message: "Request failed" };
-              errorCallback(errorData, xhr.status);
-            }
-          } catch (e) {
-            errorCallback({ message: "Error processing response: " + e.message }, xhr.status || 0);
-          }
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Network response was not ok: ${response.status}`);
         }
-      };
+        return response.json();
+      })
+      .then(data => {
+        successCallback(data);
+      })
+      .catch(error => {
+        console.warn("Fetch failed, falling back to XMLHttpRequest:", error);
 
-      xhr.onerror = function() {
-        errorCallback({ message: "Network error. Please check your connection." }, 0);
-      };
+        // Fall back to XMLHttpRequest if fetch fails
+        const xhr = new XMLHttpRequest();
+        xhr.open(options.method || 'GET', cacheBustUrl, true);
 
-      // Send the request
-      if (options.method === 'POST' && options.body) {
-        xhr.send(JSON.stringify(options.body));
-      } else {
-        xhr.send();
-      }
-    });
+        // Set headers
+        if (options.headers) {
+          Object.keys(options.headers).forEach(key => {
+            xhr.setRequestHeader(key, options.headers[key]);
+          });
+        } else {
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.setRequestHeader("Accept", "application/json");
+        }
+
+        // Add timeout handling
+        xhr.timeout = 15000;
+        xhr.ontimeout = function () {
+          errorCallback({ message: "Request timed out. Please check your connection and try again." }, 408);
+        };
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            try {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                const responseData = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+                successCallback(responseData);
+              } else {
+                const errorData = xhr.responseText ? JSON.parse(xhr.responseText) : { message: "Request failed" };
+                errorCallback(errorData, xhr.status);
+              }
+            } catch (e) {
+              errorCallback({ message: "Error processing response: " + e.message }, xhr.status || 0);
+            }
+          }
+        };
+
+        xhr.onerror = function () {
+          errorCallback({ message: "Network error. Please check your connection." }, 0);
+        };
+
+        // Send the request
+        if (options.method === 'POST' && options.body) {
+          xhr.send(JSON.stringify(options.body));
+        } else {
+          xhr.send();
+        }
+      });
   } catch (e) {
     // If fetch is not supported or throws immediate error, fall back to XMLHttpRequest
     console.warn("Fetch not supported, using XMLHttpRequest directly:", e);
@@ -143,11 +143,11 @@ function improvedFetchWithFallback(url, options, successCallback, errorCallback)
 
     // Add timeout handling
     xhr.timeout = 15000;
-    xhr.ontimeout = function() {
+    xhr.ontimeout = function () {
       errorCallback({ message: "Request timed out. Please check your connection and try again." }, 408);
     };
 
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
       if (xhr.readyState === 4) {
         try {
           if (xhr.status >= 200 && xhr.status < 300) {
@@ -163,7 +163,7 @@ function improvedFetchWithFallback(url, options, successCallback, errorCallback)
       }
     };
 
-    xhr.onerror = function() {
+    xhr.onerror = function () {
       errorCallback({ message: "Network error. Please check your connection." }, 0);
     };
 
@@ -309,22 +309,22 @@ function checkConnectivityAndRecover() {
       method: 'HEAD',
       cache: 'no-store'
     })
-    .then(response => {
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        showHint("oper-hint", "", "info"); // Clear any error message
-        resolve(true);
-      } else {
-        showHint("oper-hint", "API server returned an error. Some features may be limited.", "warning");
+      .then(response => {
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          showHint("oper-hint", "", "info"); // Clear any error message
+          resolve(true);
+        } else {
+          showHint("oper-hint", "API server returned an error. Some features may be limited.", "warning");
+          resolve(false);
+        }
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        console.error("Connectivity check failed:", error);
+        showHint("oper-hint", "Could not connect to the API server. Some features may be limited.", "warning");
         resolve(false);
-      }
-    })
-    .catch(error => {
-      clearTimeout(timeoutId);
-      console.error("Connectivity check failed:", error);
-      showHint("oper-hint", "Could not connect to the API server. Some features may be limited.", "warning");
-      resolve(false);
-    });
+      });
   });
 }
 
@@ -368,7 +368,7 @@ function handlePortalSubmit() {
 
   // Add timeout handling for portal submission
   xhrPortal.timeout = 20000; // 20 seconds timeout
-  xhrPortal.ontimeout = function() {
+  xhrPortal.ontimeout = function () {
     showHint("oper-hint", "Connection request timed out. Please try again.", "error");
   };
 
@@ -399,7 +399,7 @@ function handlePortalSubmit() {
     }
   };
 
-  xhrPortal.onerror = function() {
+  xhrPortal.onerror = function () {
     showHint("oper-hint", "Network error connecting to portal. Please try again.", "error");
   };
 
@@ -437,7 +437,7 @@ function fetchPackagesWithFallback() {
   improvedFetchWithFallback(
     url,
     { method: 'GET' },
-    function(response) {
+    function (response) {
       console.log("Package fetch success:", response);
 
       availableVoucherPackages = []; // Reset global store
@@ -483,7 +483,7 @@ function fetchPackagesWithFallback() {
         }
       }
     },
-    function(errorResponse, status) {
+    function (errorResponse, status) {
       console.error("Package fetch error:", status, errorResponse);
       const errorMessage = errorResponse.message || 'Please try again.';
       displayTbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Error loading packages: ${errorMessage}</td></tr>`;
@@ -587,10 +587,8 @@ function formatEcocashNumber(number) {
 function handleEcocashSubmitWithRetry() {
   var selectedVoucherId = selectPackage.value;
   var ecocashNumberInput = document.getElementById("ecocash-number");
-  var notificationNumberInput = document.getElementById("notification-number");
 
   var ecocashNumber = ecocashNumberInput.value.trim();
-  var notificationNumber = notificationNumberInput.value.trim();
 
   // Validate inputs
   if (!selectedVoucherId) {
@@ -607,20 +605,13 @@ function handleEcocashSubmitWithRetry() {
     ecocashNumberInput.focus();
     return;
   }
-  if (notificationNumber && !notificationNumberInput.checkValidity()) {
-    showHint("modal-hint", "Please enter a valid notification number or leave it blank.", "error");
-    notificationNumberInput.focus();
-    return;
-  }
 
   // Format EcoCash number to ensure it works with the API
   ecocashNumber = formatEcocashNumber(ecocashNumber);
-  var finalNotificationNumber = notificationNumber ? formatEcocashNumber(notificationNumber) : ecocashNumber;
 
   var buyData = {
     selected_voucher_id: selectedVoucherId,
     ecocash_phone: ecocashNumber,
-    notification_phone: finalNotificationNumber,
   };
 
   btnSubmitEcocash.textContent = "Processing...";
@@ -640,7 +631,7 @@ function handleEcocashSubmitWithRetry() {
         method: 'POST',
         body: buyData
       },
-      function(response) {
+      function (response) {
         showHint("modal-hint", response.message + " Please check your phone to authorize.", "info");
         if (response.transaction_id && response.check_status_url) {
           pollTransactionStatus(response.transaction_id, response.check_status_url);
@@ -650,7 +641,7 @@ function handleEcocashSubmitWithRetry() {
           btnSubmitEcocash.disabled = false;
         }
       },
-      function(errorResponse, status) {
+      function (errorResponse, status) {
         console.error("Error buying voucher:", status, errorResponse);
         let errMsg = "Failed to initiate purchase.";
         if (errorResponse && errorResponse.message) {
@@ -699,7 +690,7 @@ function pollTransactionStatus(transactionId, statusUrl) {
     console.warn("Could not save transaction details to localStorage:", e);
   }
 
-  pollingInterval = setInterval(function() {
+  pollingInterval = setInterval(function () {
     pollAttempts++;
 
     // Show a more user-friendly progress indicator
@@ -724,7 +715,7 @@ function pollTransactionStatus(transactionId, statusUrl) {
     improvedFetchWithFallback(
       cacheBustUrl,
       { method: 'GET' },
-      function(response) {
+      function (response) {
         // Clear stored transaction if we get any response
         try {
           if (localStorage.getItem('pendingTransactionId') === transactionId) {
@@ -749,9 +740,9 @@ function pollTransactionStatus(transactionId, statusUrl) {
             if (response.vouchers_details && response.vouchers_details.pin) {
               receivedVoucherCode = response.vouchers_details.pin;
             } else if (response.receipt && response.receipt.vouchers &&
-                      Array.isArray(response.receipt.vouchers) &&
-                      response.receipt.vouchers.length > 0 &&
-                      response.receipt.vouchers[0].pin) {
+              Array.isArray(response.receipt.vouchers) &&
+              response.receipt.vouchers.length > 0 &&
+              response.receipt.vouchers[0].pin) {
               receivedVoucherCode = response.receipt.vouchers[0].pin;
             } else {
               console.warn("Could not find PIN in voucher_details or receipt. API Response:", response);
@@ -764,7 +755,7 @@ function pollTransactionStatus(transactionId, statusUrl) {
               document.getElementById("voucherCode").value = receivedVoucherCode;
             }
 
-            setTimeout(function() {
+            setTimeout(function () {
               modal.classList.remove("active");
               resetModal();
               if (receivedVoucherCode) {
@@ -783,7 +774,7 @@ function pollTransactionStatus(transactionId, statusUrl) {
           let failMsg = "Payment Failed.";
           if (response.error_details) failMsg += ` Reason: ${response.error_details}`;
           else if (response.payment_details && response.payment_details.failure_reason)
-              failMsg += ` Reason: ${response.payment_details.failure_reason}`;
+            failMsg += ` Reason: ${response.payment_details.failure_reason}`;
 
           showHint("modal-hint", failMsg, "error");
           btnSubmitEcocash.textContent = "Pay Now";
@@ -794,7 +785,7 @@ function pollTransactionStatus(transactionId, statusUrl) {
           showHint("modal-hint", `Payment ${response.status}. Waiting for confirmation... Attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS}`, "info");
         }
       },
-      function(errorResponse, status) {
+      function (errorResponse, status) {
         console.error("Error polling status:", status, errorResponse);
         // Decrease polling frequency when errors occur
         if (pollAttempts > 5) {
@@ -882,7 +873,7 @@ document.addEventListener("DOMContentLoaded", function () {
   setInterval(checkConnectivityAndRecover, 60000); // Check every minute
 
   // Also check when the page becomes visible again
-  document.addEventListener("visibilitychange", function() {
+  document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
       checkConnectivityAndRecover().then(isConnected => {
         if (isConnected && availableVoucherPackages.length === 0) {
@@ -917,7 +908,7 @@ document.addEventListener("DOMContentLoaded", function () {
   btnSubmitEcocash.addEventListener("click", handleEcocashSubmitWithRetry);
 
   // Online/offline event listeners
-  window.addEventListener("online", function() {
+  window.addEventListener("online", function () {
     showHint("oper-hint", "You are back online. Reconnecting to services...", "info");
     checkConnectivityAndRecover().then(isConnected => {
       if (isConnected) {
@@ -927,7 +918,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  window.addEventListener("offline", function() {
+  window.addEventListener("offline", function () {
     showHint("oper-hint", "You are currently offline. Some features may not work.", "warning");
   });
 
@@ -955,12 +946,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   };
 
-  xhrPortalSettings.ontimeout = function() {
+  xhrPortalSettings.ontimeout = function () {
     console.warn("Portal settings request timed out");
     showHint("oper-hint", "Connection to WiFi portal timed out. Try refreshing the page.", "warning");
   };
 
-  xhrPortalSettings.onerror = function() {
+  xhrPortalSettings.onerror = function () {
     console.error("Error loading portal settings");
     showHint("oper-hint", "Error connecting to the WiFi portal. Try refreshing the page.", "error");
   };
