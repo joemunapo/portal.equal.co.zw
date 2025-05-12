@@ -412,10 +412,8 @@ function populateVoucherPackagesForModal() {
 function handleEcocashSubmit() {
   var selectedVoucherId = selectPackage.value;
   var ecocashNumberInput = document.getElementById("ecocash-number");
-  var notificationNumberInput = document.getElementById("notification-number");
 
   var ecocashNumber = ecocashNumberInput.value.trim();
-  var notificationNumber = notificationNumberInput.value.trim();
 
   if (!selectedVoucherId) {
     showHint("modal-hint", "Please select a package.", "error");
@@ -431,18 +429,10 @@ function handleEcocashSubmit() {
     ecocashNumberInput.focus();
     return;
   }
-  if (notificationNumber && !notificationNumberInput.checkValidity()) {
-    showHint("modal-hint", "Please enter a valid notification number or leave it blank.", "error");
-    notificationNumberInput.focus();
-    return;
-  }
-
-  var finalNotificationNumber = notificationNumber ? notificationNumber : ecocashNumber;
 
   var buyData = {
     selected_voucher_id: selectedVoucherId,
-    ecocash_phone: ecocashNumber,
-    notification_phone: finalNotificationNumber,
+    ecocash_phone: ecocashNumber
   };
 
   btnSubmitEcocash.textContent = "Processing...";
