@@ -1,10 +1,11 @@
+
 // Configuration
 const API_BASE_URL = (function () {
   // Get the current protocol (http: or https:)
   const protocol = window.location.protocol;
 
   // Base URL with the appropriate protocol
-  let baseUrl = "https://botdev.xash.co.zw/api/v1/wifi-vouchers";
+  let baseUrl = "https://bot.xash.co.zw/api/v1/wifi-vouchers";
 
   // If we're on a secure connection but the API is not, try to use HTTPS
   if (protocol === 'https:' && baseUrl.startsWith('http:')) {
@@ -302,7 +303,7 @@ function checkConnectivityAndRecover() {
   // Display network status
   if (!isOnline) {
     showHint("oper-hint", "You appear to be offline. Please check your connection.", "error");
-    return false;
+    // return false;
   }
 
   // Try to ping the API to check if it's reachable
