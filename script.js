@@ -5,7 +5,7 @@ const API_BASE_URL = (function () {
   const protocol = window.location.protocol;
 
   // Base URL with the appropriate protocol
-  let baseUrl = "https://bot.xash.co.zw/api/v1/wifi-vouchers";
+  let baseUrl = "https://ecocash.eql.co.zw/api/v1/wifi-vouchers";
 
   // If we're on a secure connection but the API is not, try to use HTTPS
   if (protocol === 'https:' && baseUrl.startsWith('http:')) {
@@ -610,18 +610,20 @@ function handleEcocashSubmitWithRetry() {
     ecocashNumberInput.focus();
     return;
   }
+
+  // Normalize and validate EcoCash number before submit
+  ecocashNumber = formatEcocashNumber(ecocashNumber);
+  ecocashNumberInput.value = ecocashNumber;
   if (!ecocashNumberInput.checkValidity()) {
     showHint("modal-hint", "Please enter a valid EcoCash number (e.g., 077xxxxxxx or 078xxxxxxx).", "error");
     ecocashNumberInput.focus();
     return;
   }
 
-  // Format EcoCash number to ensure it works with the API
-  ecocashNumber = formatEcocashNumber(ecocashNumber);
-
   var buyData = {
     selected_voucher_id: selectedVoucherId,
     ecocash_phone: ecocashNumber,
+    client_mac: clientMac,
   };
 
   btnSubmitEcocash.textContent = "Processing...";
