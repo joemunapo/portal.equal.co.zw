@@ -296,6 +296,144 @@ var portalErrorHintMap = {
   "-41538": "Voucher is not effective.",
 };
 
+var WIFI_ADS_ENDPOINT = API_BASE_URL.replace("/wifi-vouchers", "/wifi-ads");
+var WIFI_ADS_TTL_DAYS = 3;
+var WIFI_ADS_DISMISS_KEY = "wifi_ad_dismissed_until";
+
+function getAdContextParams() {
+  var params = new URLSearchParams();
+  if (clientMac) params.set("clientMac", clientMac);
+  if (apMac) params.set("apMac", apMac);
+  if (gatewayMac) params.set("gatewayMac", gatewayMac);
+  if (ssidName) params.set("ssid", ssidName);
+  if (radioId !== undefined) params.set("radioId", String(radioId));
+  if (vid !== undefined) params.set("vid", String(vid));
+  return params.toString();
+}
+
+function isAdDismissed() {
+  try {
+    var until = localStorage.getItem(WIFI_ADS_DISMISS_KEY);
+    if (!until) return false;
+    return Date.now() < Number(until);
+  } catch (e) {
+    return false;
+  }
+}
+
+function dismissAdForTtl() {
+  try {
+    var ttlMs = WIFI_ADS_TTL_DAYS * 24 * 60 * 60 * 1000;
+    localStorage.setItem(WIFI_ADS_DISMISS_KEY, String(Date.now() + ttlMs));
+  } catch (e) {
+    // Ignore storage errors
+  }
+}
+
+function showAdOverlay(adData) {
+  var overlay = document.getElementById("ad-overlay");
+  var iframe = document.getElementById("ad-iframe");
+  var image = document.getElementById("ad-image");
+  var message = document.getElementById("ad-message");
+  var closeBtn = document.getElementById("ad-close");
+  var continueBtn = document.getElementById("ad-continue");
+  if (!overlay || !iframe || !image || !message || !closeBtn || !continueBtn) return;
+
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+  if (adData.html) {
+    iframe.style.display = "block";
+    image.style.display = "none";
+    iframe.src = "about:blank";
+    iframe.srcdoc = adData.html;
+  } else if (adData.imageBase64 || adData.image) {
+    iframe.style.display = "none";
+    iframe.src = "about:blank";
+    iframe.srcdoc = "";
+    image.style.display = "block";
+    var base64 = adData.imageBase64 || adData.image;
+    if (base64 && base64.startsWith("data:")) {
+      image.src = base64;
+    } else {
+      var mime = adData.imageMime || "image/jpeg";
+      image.src = "data:" + mime + ";base64," + base64;
+    }
+  }
+  if (adData.message) message.textContent = adData.message;
+  if (adData.cta) continueBtn.textContent = adData.cta;
+
+  function closeAd() {
+    overlay.classList.remove("active");
+    overlay.setAttribute("aria-hidden", "true");
+    iframe.src = "about:blank";
+    iframe.srcdoc = "";
+    image.src = "";
+    dismissAdForTtl();
+    logAdEvent(adData.id, "close");
+  }
+
+  closeBtn.onclick = closeAd;
+  continueBtn.onclick = closeAd;
+}
+
+function logAdEvent(adId, eventName) {
+  if (!adId) return;
+  var url = WIFI_ADS_ENDPOINT + "/log";
+  var payload = {
+    adId: adId,
+    event: eventName,
+    clientMac: clientMac,
+    apMac: apMac,
+    gatewayMac: gatewayMac,
+    ssidName: ssidName,
+    radioId: radioId,
+    vid: vid,
+  };
+
+  try {
+    if (navigator.sendBeacon) {
+      var blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      navigator.sendBeacon(url, blob);
+      return;
+    }
+  } catch (e) {
+    // Ignore and fall back to fetch
+  }
+
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).catch(function () {});
+}
+
+function fetchWifiAd() {
+  if (isAdDismissed()) return;
+
+  var overlay = document.getElementById("ad-overlay");
+  if (!overlay) return;
+
+  var params = getAdContextParams();
+  var url = WIFI_ADS_ENDPOINT + "/active" + (params ? "?" + params : "");
+
+  improvedFetchWithFallback(
+    url,
+    { method: "GET" },
+    function (response) {
+      if (!response || !response.data || !response.data.enabled) return;
+      var adData = response.data;
+      if (!adData.html && !adData.imageBase64 && !adData.image) return;
+      if (adData.ttlSeconds && !isNaN(adData.ttlSeconds)) {
+        WIFI_ADS_TTL_DAYS = Math.max(1, Math.round(adData.ttlSeconds / 86400));
+      }
+      showAdOverlay(adData);
+      logAdEvent(adData.id, "impression");
+    },
+    function () {}
+  );
+}
+
 // Function to check if we are online and can reach the API
 function checkConnectivityAndRecover() {
   let isOnline = navigator.onLine;
@@ -479,6 +617,7 @@ function fetchPackagesWithFallback() {
           displayTbody.appendChild(tr);
         });
         displayTfoot.style.display = '';
+        highlightPopularPackageRow();
         showHint("modal-hint", "", "info"); // Clear modal hint
 
         // Also update the modal's select dropdown if it exists
@@ -523,6 +662,54 @@ function fetchPackagesWithFallback() {
       }
     }
   );
+}
+
+function highlightPopularPackageRow() {
+  const displayTbody = document.getElementById("voucher-display-tbody");
+  if (!displayTbody) return;
+
+  const rows = Array.from(displayTbody.querySelectorAll("tr"));
+  rows.forEach(row => {
+    row.classList.remove("package-highlight");
+    row.classList.remove("package-popular");
+    const tag = row.querySelector(".popular-tag");
+    if (tag) tag.remove();
+    const bestTag = row.querySelector(".best-tag");
+    if (bestTag) bestTag.remove();
+  });
+
+  for (const row of rows) {
+    const dataCell = row.children[0];
+    const durationCell = row.children[1];
+    if (!dataCell || !durationCell) continue;
+    const dataText = dataCell.textContent.toLowerCase();
+    const durationText = durationCell.textContent.toLowerCase();
+    if (dataText.includes("unlimited") && durationText.includes("7")) {
+      row.classList.add("package-highlight");
+      const tag = document.createElement("span");
+      tag.className = "best-tag";
+      tag.textContent = "Best Value";
+      dataCell.appendChild(tag);
+      break;
+    }
+  }
+
+  for (const row of rows) {
+    const dataCell = row.children[0];
+    const priceCell = row.children[2];
+    if (!dataCell || !priceCell) continue;
+    const match = priceCell.textContent.match(/([0-9]+(?:\.[0-9]+)?)/);
+    if (!match) continue;
+    const price = parseFloat(match[1]);
+    if (Math.abs(price - 2) < 0.001) {
+      row.classList.add("package-popular");
+      const tag = document.createElement("span");
+      tag.className = "popular-tag";
+      tag.textContent = "Popular";
+      dataCell.appendChild(tag);
+      break;
+    }
+  }
 }
 
 // Modal functionality
@@ -863,6 +1050,11 @@ function checkForInterruptedTransactions() {
 
 // Initialize the page
 document.addEventListener("DOMContentLoaded", function () {
+  const yearEl = document.getElementById("dynamic-year");
+  if (yearEl) {
+    yearEl.textContent = new Date().getFullYear();
+  }
+
   // Event listener for portal connect button
   document
     .getElementById("button-login")
@@ -880,6 +1072,7 @@ document.addEventListener("DOMContentLoaded", function () {
   checkConnectivityAndRecover().then(isConnected => {
     // Fetch and display voucher packages
     fetchPackagesWithFallback();
+    fetchWifiAd();
   });
 
   // Set up periodic connectivity checks

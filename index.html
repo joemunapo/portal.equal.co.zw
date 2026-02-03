@@ -7,20 +7,6 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="video-container">
-      <video
-        id="background-video"
-        autoplay
-        muted
-        loop
-        playsinline
-        poster="background.webp"
-      >
-        <source src="link.mp4" type="video/mp4" />
-      </video>
-      <div id="fade-overlay"></div>
-    </div>
-
     <div class="container">
       <div class="logo-container">
         <svg
@@ -57,8 +43,9 @@
 
       <div class="card">
         <h1>Equal WiFi</h1>
-        <div class="support">
-          Customer Support: <a href="tel:+263776205963">+263776205963</a>
+        <div class="support-callout">
+          <strong>Need help?</strong> Call
+          <a href="tel:+263780186564">+263 78 018 6564</a>
         </div>
         <hr />
 
@@ -68,10 +55,15 @@
           <div class="form-group">
             <input
               id="voucherCode"
-              class="input"
+              class="input voucher-input"
               name="voucherCode"
               type="text"
-              placeholder="Enter Equal Voucher"
+              placeholder="Enter Voucher (e.g. 12345678)"
+              inputmode="numeric"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
             />
           </div>
           <input name="clientMac" id="cMac" style="display: none" />
@@ -81,6 +73,7 @@
           <button type="button" id="button-login" class="button">
             Connect
           </button>
+          <div class="or-divider"><span>OR</span></div>
           <button type="button" id="button-ecocash" class="button secondary">
             Buy Voucher with &nbsp;<span class="ecocash-text">
               <span class="eco">Eco</span><span class="cash">Cash</span>
@@ -112,23 +105,33 @@
       </div>
 
       <div class="footer">
-        <p>Powered by:</p>
-        <a href="http://xash.co.zw" target="_blank" rel="noopener noreferrer">
-          Xash
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="currentColor"
-            style="vertical-align: middle"
+        <div class="footer-card">
+          <div class="footer-label">Powered by</div>
+          <a
+            class="footer-brand"
+            href="http://xash.co.zw"
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <path
-              d="M14 3h7v7h-2V6.41l-9.59 9.59-1.41-1.41L17.59 5H14V3zm-1 5v2H5v10h10v-8h2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h8z"
-            />
-          </svg>
-        </a>
-        <p>Vouchers available in any Xash Dealer</p>
+            Xash
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M14 3h7v7h-2V6.41l-9.59 9.59-1.41-1.41L17.59 5H14V3zm-1 5v2H5v10h10v-8h2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h8z"
+              />
+            </svg>
+          </a>
+          <div class="footer-meta">
+            &copy; <span id="dynamic-year"></span> Xash. Vouchers available
+            from any Xash Dealer.
+          </div>
+        </div>
       </div>
     </div>
 
@@ -164,198 +167,35 @@
       </div>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        var video = document.getElementById("background-video");
-        var videoContainer = document.querySelector(".video-container");
-        var fadeOverlay = document.getElementById("fade-overlay");
-        var videoPlaying = false;
-        var playAttempted = false;
+    <div class="ad-overlay" id="ad-overlay" aria-hidden="true">
+      <div class="ad-panel" role="dialog" aria-modal="true">
+        <div class="ad-header">
+          <span class="ad-label">Sponsored</span>
+          <button class="ad-close" id="ad-close" aria-label="Close ad">
+            ×
+          </button>
+        </div>
+        <div class="ad-frame-wrap">
+          <iframe
+            id="ad-iframe"
+            title="Sponsored content"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+          ></iframe>
+          <img id="ad-image" alt="Sponsored promotion" />
+        </div>
+        <div class="ad-message" id="ad-message">
+          Promote your business here. Ask about Wi‑Fi ads.
+        </div>
+        <div class="ad-actions">
+          <button class="button ad-continue" id="ad-continue">
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
 
-        // Set video to quarter speed
-        video.playbackRate = 0.25;
-
-        // Function to enable video background
-        function enableVideo() {
-          if (!videoPlaying) {
-            videoPlaying = true;
-            document.body.classList.add("video-active");
-            document.body.classList.remove("image-fallback");
-            videoContainer.style.opacity = "1";
-          }
-        }
-
-        // Function to use image fallback
-        function useImageFallback() {
-          videoPlaying = false;
-          document.body.classList.remove("video-active");
-          document.body.classList.add("image-fallback");
-          videoContainer.style.opacity = "0";
-        }
-
-        // Initial attempt to play the video
-        function attemptVideoPlayback() {
-          if (playAttempted) return;
-          playAttempted = true;
-
-          // Try to play video
-          var playPromise = video.play();
-
-          if (playPromise !== undefined) {
-            playPromise
-              .then(function () {
-                // Video started playing successfully
-                console.log("Video playing successfully");
-                video.playbackRate = 0.25; // Ensure slow playback is set after successful play
-                enableVideo();
-
-                // Add playing event to confirm it's actually playing
-                video.addEventListener("playing", function () {
-                  enableVideo();
-                });
-
-                // Monitor if video stalls or fails after initially playing
-                video.addEventListener("stalled", function () {
-                  console.log("Video stalled");
-                  useImageFallback();
-                });
-              })
-              .catch(function (error) {
-                // Autoplay was prevented
-                console.log("Video autoplay prevented:", error);
-                useImageFallback();
-              });
-          } else {
-            // Older browsers might not return a promise
-            console.log("Browser doesn't return play promise");
-
-            // Set a timeout to check if video is actually playing
-            setTimeout(function () {
-              if (video.currentTime > 0) {
-                video.playbackRate = 0.25; // Set slow playback if playing
-                enableVideo();
-              } else {
-                useImageFallback();
-              }
-            }, 500);
-          }
-        }
-
-        // Set a failsafe timeout - if video hasn't started playing within 2 seconds, use image
-        var failsafeTimeout = setTimeout(function () {
-          if (!videoPlaying) {
-            console.log("Failsafe timeout - video not playing after 2s");
-            useImageFallback();
-          }
-        }, 2000);
-
-        // Handle iOS and similar devices that require user interaction
-        function handleUserInteraction() {
-          if (!videoPlaying) {
-            video
-              .play()
-              .then(function () {
-                video.playbackRate = 0.25; // Set slow playback after user interaction
-                enableVideo();
-              })
-              .catch(function () {
-                useImageFallback();
-              });
-          }
-        }
-
-        // Try video playback when metadata is loaded
-        video.addEventListener("loadedmetadata", function () {
-          attemptVideoPlayback();
-        });
-
-        // Enable on interaction for iOS devices
-        document.body.addEventListener("click", handleUserInteraction, false);
-        document.body.addEventListener(
-          "touchstart",
-          handleUserInteraction,
-          false
-        );
-
-        // If video element throws error, fall back to image
-        video.addEventListener("error", function () {
-          console.log("Video error event triggered");
-          useImageFallback();
-        });
-
-        // Also attempt playback immediately
-        attemptVideoPlayback();
-
-        // For a 5-second video playing at 0.25x (takes 20 seconds to play)
-        var videoRealDuration = 5; // Original duration in seconds
-        var playbackRate = 0.25; // Current playback rate
-        var adjustedDuration = videoRealDuration / playbackRate; // Adjusted duration (20 seconds)
-
-        var fadeOutThreshold = adjustedDuration - 2; // Start fade 2 seconds before end
-        var fadeInDuration = 2; // Fade in duration at start
-
-        // Monitor video time for fade effects
-        video.addEventListener("timeupdate", function () {
-          if (!videoPlaying) return; // Skip if video isn't playing
-
-          var currentTime = video.currentTime;
-
-          // Near the end of the video
-          if (currentTime >= fadeOutThreshold) {
-            // Calculate fade progress (0 to 1)
-            var fadeRatio =
-              (currentTime - fadeOutThreshold) /
-              (video.duration - fadeOutThreshold);
-            fadeOverlay.style.opacity = Math.min(fadeRatio * 0.8, 0.8); // Max 80% opacity
-          }
-          // At the beginning of the video
-          else if (currentTime <= fadeInDuration) {
-            var fadeRatio = 1 - currentTime / fadeInDuration;
-            fadeOverlay.style.opacity = Math.min(fadeRatio * 0.8, 0.8); // Max 80% opacity
-          }
-          // Middle of the video
-          else {
-            fadeOverlay.style.opacity = 0;
-          }
-        });
-
-        // In case timeupdate events are too infrequent on some devices
-        // Force update opacity when video loops
-        video.addEventListener("seeking", function () {
-          if (video.currentTime < 0.1) {
-            fadeOverlay.style.opacity = 0.8; // Start fully faded
-            setTimeout(function () {
-              // Gradually fade out after a small delay
-              fadeOverlay.style.opacity = 0;
-            }, 300);
-          }
-        });
-
-        // Handle page visibility changes
-        document.addEventListener("visibilitychange", function () {
-          if (document.visibilityState === "visible") {
-            // Page is now visible again, check if video should be playing
-            if (videoPlaying && video.paused) {
-              video
-                .play()
-                .then(function () {
-                  video.playbackRate = 0.25; // Ensure slow playback when resuming
-                })
-                .catch(function () {
-                  useImageFallback();
-                });
-            }
-          }
-        });
-
-        // Final playback rate adjustment after all initialization
-        setTimeout(function () {
-          if (videoPlaying) {
-            video.playbackRate = 0.25;
-          }
-        }, 2500);
-      });
-    </script>
     <script src="script.js"></script>
   </body>
 </html>
