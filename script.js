@@ -341,11 +341,16 @@ function showAdOverlay(adData) {
 
   overlay.classList.add("active");
   overlay.setAttribute("aria-hidden", "false");
-  if (adData.html) {
+  var normalizedHtml = normalizeAdHtml(adData.html);
+  if (normalizedHtml) {
     iframe.style.display = "block";
     image.style.display = "none";
     iframe.src = "about:blank";
-    iframe.srcdoc = adData.html;
+    iframe.srcdoc =
+      "<!doctype html><html><head><meta charset=\"utf-8\"></head>" +
+      "<body style=\"margin:0;\">" +
+      normalizedHtml +
+      "</body></html>";
   } else if (adData.imageBase64 || adData.image) {
     iframe.style.display = "none";
     iframe.src = "about:blank";
@@ -421,9 +426,9 @@ function fetchWifiAd() {
     url,
     { method: "GET" },
     function (response) {
-      if (!response || !response.data || !response.data.enabled) return;
-      var adData = response.data;
-      if (!adData.html && !adData.imageBase64 && !adData.image) return;
+      var adData = normalizeAdResponse(response);
+      if (!adData) return;
+      if (!normalizeAdHtml(adData.html) && !adData.imageBase64 && !adData.image) return;
       if (adData.ttlSeconds && !isNaN(adData.ttlSeconds)) {
         WIFI_ADS_TTL_DAYS = Math.max(1, Math.round(adData.ttlSeconds / 86400));
       }
@@ -432,6 +437,26 @@ function fetchWifiAd() {
     },
     function () {}
   );
+}
+
+function normalizeAdResponse(response) {
+  if (!response) return null;
+  var data = response.data || response.result || response.ad || response;
+  if (Array.isArray(data)) {
+    data = data[0];
+  }
+  if (!data) return null;
+  if (data.enabled === false) return null;
+  if (data.enabled === undefined) data.enabled = true;
+  return data;
+}
+
+function normalizeAdHtml(html) {
+  if (!html) return "";
+  return html
+    .replace(/<\?xml[^>]*\?>/gi, "")
+    .replace(/<!doctype[^>]*>/gi, "")
+    .trim();
 }
 
 // Function to check if we are online and can reach the API

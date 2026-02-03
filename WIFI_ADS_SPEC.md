@@ -36,6 +36,7 @@ This document defines the Wi‑Fi ads endpoint used by the portal. The portal re
 **Notes**
 - `enabled=false` means no ad should be shown.
 - `html` or `imageBase64` is required when `enabled=true`.
+- `html` should be a clean HTML fragment (no `<?xml ...?>` header). The portal renders it via `srcdoc`.
 - `imageBase64` should be raw base64 **without** the data URL prefix. Use `imageMime` to describe the type.
 - `message` is shown **below** the iframe.
 - `cta` is the label for the Continue button (optional; defaults to “Continue”).
