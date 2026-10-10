@@ -827,7 +827,7 @@ function handleEcocashSubmitWithRetry() {
   ecocashNumber = formatEcocashNumber(ecocashNumber);
   ecocashNumberInput.value = ecocashNumber;
   if (!ecocashNumberInput.checkValidity()) {
-    showHint("modal-hint", "Please enter a valid EcoCash number (e.g., 077xxxxxxx or 078xxxxxxx).", "error");
+    showHint("modal-hint", "Enter a valid EcoCash number starting with 077, 078 or 079.", "error");
     ecocashNumberInput.focus();
     return;
   }
