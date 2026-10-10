@@ -156,13 +156,24 @@
               class="input"
               placeholder="EcoCash Number (e.g. 0771234567)"
               required
-              pattern="^(07[7-8]\d{7}|2637[7-8]\d{7}|\+2637[7-8]\d{7})$"
-              title="Enter a valid EcoCash number (077/078...)"
+              pattern="^(?:0|\+?263)7(?:[78]\d|9[01])\d{6}$"
+              title="Enter a valid EcoCash number (077, 078, 0790 or 0791)"
             />
           </div>
           <button type="button" id="submit-ecocash" class="button">
             Pay Now
           </button>
+          <button
+            type="button"
+            id="check-again"
+            class="button secondary"
+            style="display: none"
+          >
+            Check again
+          </button>
+          <a href="#" id="start-over" class="start-over-link" style="display: none">
+            This was a different payment? Start a new one
+          </a>
         </form>
       </div>
     </div>
