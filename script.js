@@ -49,141 +49,141 @@ function sanitizeVoucherCode(code) {
   return code.replace(/\s+/g, '');
 }
 
-// Improved fetch with XMLHttpRequest fallback
-function improvedFetchWithFallback(url, options, successCallback, errorCallback) {
-  // First try the fetch API with more robust error handling
+// Parse a JSON response body without throwing (empty or non-JSON bodies give {})
+function parseJsonSafely(text) {
+  if (!text) return {};
   try {
-    // Add cache-busting parameter more reliably
-    const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_cb=' + new Date().getTime();
-
-    // Set a timeout for fetch (since fetch doesn't support timeout natively)
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 15000);
-    });
-
-    Promise.race([
-      fetch(cacheBustUrl, {
-        method: options.method || 'GET',
-        headers: options.headers || {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: options.body ? JSON.stringify(options.body) : undefined,
-        cache: 'no-store'
-      }),
-      timeoutPromise
-    ])
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Network response was not ok: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        successCallback(data);
-      })
-      .catch(error => {
-        console.warn("Fetch failed, falling back to XMLHttpRequest:", error);
-
-        // Fall back to XMLHttpRequest if fetch fails
-        const xhr = new XMLHttpRequest();
-        xhr.open(options.method || 'GET', cacheBustUrl, true);
-
-        // Set headers
-        if (options.headers) {
-          Object.keys(options.headers).forEach(key => {
-            xhr.setRequestHeader(key, options.headers[key]);
-          });
-        } else {
-          xhr.setRequestHeader("Content-Type", "application/json");
-          xhr.setRequestHeader("Accept", "application/json");
-        }
-
-        // Add timeout handling
-        xhr.timeout = 15000;
-        xhr.ontimeout = function () {
-          errorCallback({ message: "Request timed out. Please check your connection and try again." }, 408);
-        };
-
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            try {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                const responseData = xhr.responseText ? JSON.parse(xhr.responseText) : {};
-                successCallback(responseData);
-              } else {
-                const errorData = xhr.responseText ? JSON.parse(xhr.responseText) : { message: "Request failed" };
-                errorCallback(errorData, xhr.status);
-              }
-            } catch (e) {
-              errorCallback({ message: "Error processing response: " + e.message }, xhr.status || 0);
-            }
-          }
-        };
-
-        xhr.onerror = function () {
-          errorCallback({ message: "Network error. Please check your connection." }, 0);
-        };
-
-        // Send the request
-        if (options.method === 'POST' && options.body) {
-          xhr.send(JSON.stringify(options.body));
-        } else {
-          xhr.send();
-        }
-      });
+    return JSON.parse(text);
   } catch (e) {
-    // If fetch is not supported or throws immediate error, fall back to XMLHttpRequest
-    console.warn("Fetch not supported, using XMLHttpRequest directly:", e);
+    return {};
+  }
+}
 
-    const xhr = new XMLHttpRequest();
-    const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_cb=' + new Date().getTime();
+// Plain XMLHttpRequest, used only where fetch is unavailable (or as a GET fallback)
+function xhrRequest(url, options, successCallback, errorCallback) {
+  const xhr = new XMLHttpRequest();
+  xhr.open(options.method || 'GET', url, true);
 
-    xhr.open(options.method || 'GET', cacheBustUrl, true);
+  // Set headers
+  if (options.headers) {
+    Object.keys(options.headers).forEach(key => {
+      xhr.setRequestHeader(key, options.headers[key]);
+    });
+  } else {
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Accept", "application/json");
+  }
 
-    // Set headers
-    if (options.headers) {
-      Object.keys(options.headers).forEach(key => {
-        xhr.setRequestHeader(key, options.headers[key]);
-      });
-    } else {
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.setRequestHeader("Accept", "application/json");
-    }
+  // Add timeout handling (status 0: no answer, the outcome is unknown)
+  xhr.timeout = options.timeout || 15000;
+  xhr.ontimeout = function () {
+    errorCallback({ message: "Request timed out. Please check your connection and try again.", timedOut: true }, 0);
+  };
 
-    // Add timeout handling
-    xhr.timeout = 15000;
-    xhr.ontimeout = function () {
-      errorCallback({ message: "Request timed out. Please check your connection and try again." }, 408);
-    };
-
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4) {
-        try {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const responseData = xhr.responseText ? JSON.parse(xhr.responseText) : {};
-            successCallback(responseData);
-          } else {
-            const errorData = xhr.responseText ? JSON.parse(xhr.responseText) : { message: "Request failed" };
-            errorCallback(errorData, xhr.status);
-          }
-        } catch (e) {
-          errorCallback({ message: "Error processing response: " + e.message }, xhr.status || 0);
-        }
+  xhr.onreadystatechange = function () {
+    // status 0 is a network error or timeout, reported by onerror / ontimeout
+    if (xhr.readyState === 4 && xhr.status !== 0) {
+      const responseData = parseJsonSafely(xhr.responseText);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        successCallback(responseData, xhr.status);
+      } else {
+        errorCallback(responseData, xhr.status);
       }
-    };
+    }
+  };
 
-    xhr.onerror = function () {
-      errorCallback({ message: "Network error. Please check your connection." }, 0);
-    };
+  xhr.onerror = function () {
+    errorCallback({ message: "Network error. Please check your connection." }, 0);
+  };
 
-    // Send the request
-    if (options.method === 'POST' && options.body) {
-      xhr.send(JSON.stringify(options.body));
+  // Send the request
+  if (options.method && options.method !== 'GET' && options.body) {
+    xhr.send(JSON.stringify(options.body));
+  } else {
+    xhr.send();
+  }
+}
+
+// Fetch with an XMLHttpRequest fallback.
+// successCallback(data, status) gets 2xx answers; errorCallback(data, status) gets everything
+// else, with status 0 when no answer arrived (network error or timeout).
+// Only GET requests are ever sent a second time (via XHR after a failed fetch). Any other
+// method is sent exactly once: a POST that may have reached the server is never re-sent.
+function improvedFetchWithFallback(url, options, successCallback, errorCallback) {
+  const method = options.method || 'GET';
+  const timeoutMs = options.timeout || 15000;
+  // Add cache-busting parameter more reliably
+  const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_cb=' + new Date().getTime();
+
+  if (typeof window.fetch !== 'function') {
+    console.warn("Fetch not supported, using XMLHttpRequest directly");
+    xhrRequest(cacheBustUrl, options, successCallback, errorCallback);
+    return;
+  }
+
+  // Each request reports exactly once, even if a late answer arrives after the timeout
+  let settled = false;
+  function settle(callback, data, status) {
+    if (settled) return;
+    settled = true;
+    callback(data, status);
+  }
+
+  function noAnswer(error) {
+    if (method === 'GET') {
+      console.warn("Fetch failed, falling back to XMLHttpRequest:", error);
+      settled = true;
+      xhrRequest(cacheBustUrl, options, successCallback, errorCallback);
     } else {
-      xhr.send();
+      console.warn("Request got no answer (not re-sent):", error);
+      settle(errorCallback, {
+        message: "Network error. Please check your connection.",
+        timedOut: !!(error && error.message === 'Request timeout'),
+      }, 0);
     }
   }
+
+  // Set a timeout for fetch (since fetch doesn't support timeout natively)
+  const timeoutId = setTimeout(() => {
+    if (!settled) noAnswer(new Error('Request timeout'));
+  }, timeoutMs);
+
+  let request;
+  try {
+    request = fetch(cacheBustUrl, {
+      method: method,
+      headers: options.headers || {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      cache: 'no-store'
+    });
+  } catch (e) {
+    // fetch threw before sending anything
+    clearTimeout(timeoutId);
+    console.warn("Fetch threw, using XMLHttpRequest directly:", e);
+    settled = true;
+    xhrRequest(cacheBustUrl, options, successCallback, errorCallback);
+    return;
+  }
+
+  request
+    .then(response => {
+      return response.text().then(text => {
+        clearTimeout(timeoutId);
+        const data = parseJsonSafely(text);
+        if (response.ok) {
+          settle(successCallback, data, response.status);
+        } else {
+          settle(errorCallback, data, response.status);
+        }
+      });
+    })
+    .catch(error => {
+      clearTimeout(timeoutId);
+      if (!settled) noAnswer(error);
+    });
 }
 
 // Legacy Ajax utility for backward compatibility
@@ -744,14 +744,19 @@ var closeModalBtn = document.getElementById("close-modal");
 var btnSubmitEcocash = document.getElementById("submit-ecocash");
 var selectPackage = document.getElementById("voucher-package");
 var ecocashForm = document.getElementById("ecocash-form");
+var btnCheckAgain = document.getElementById("check-again");
 
 function resetModal() {
   ecocashForm.reset();
   showHint("modal-hint", "", "info");
-  btnSubmitEcocash.textContent = "Pay Now";
-  btnSubmitEcocash.disabled = false;
-  if (pollingInterval) clearInterval(pollingInterval);
-  pollAttempts = 0;
+  stopPolling();
+  showCheckAgain(false);
+  // A /buy request still on its way keeps the button locked until it answers
+  if (paymentRequestInFlight) {
+    setPayButton("Processing...", false);
+  } else {
+    setPayButton("Pay Now", true);
+  }
 }
 
 // Populate the modal's select dropdown using pre-fetched data
@@ -805,8 +810,61 @@ function formatEcocashNumber(number) {
   return number;
 }
 
-// Handle EcoCash payment submission with improved error handling
-function handleEcocashSubmitWithRetry() {
+// Payment flow state
+// One /buy request per user action: nothing here re-sends it automatically. The backend keeps one
+// open EcoCash prompt per phone, so a manual "Try again" from this device returns the waiting purchase.
+let paymentRequestInFlight = false;
+let pollTimer = null;
+let pollingActive = false;
+let pollRun = 0; // bumped on every start/stop so answers from an earlier run are ignored
+let pollStartedAt = 0;
+let completedPolls = 0;
+let currentPurchaseId = null;
+let currentStatusUrl = null;
+let lastServerMessage = "";
+
+const BUY_TIMEOUT_MS = 75000; // the server waits up to ~60 s for EcoCash to accept the request
+const POLL_FAST_MS = 3000; // every 3 s ...
+const POLL_FAST_FOR_MS = 2 * 60 * 1000; // ... for the first 2 minutes
+const POLL_SLOW_MS = 10000; // then every 10 s ...
+const POLL_MAX_WAIT_MS = 15 * 60 * 1000; // ... for up to 15 minutes
+
+const MSG_START_UNCONFIRMED = "We couldn't confirm your payment started. If a prompt appears on your phone, approve it.";
+const MSG_START_FAILED = "We couldn't start your payment right now. If a prompt appears on your phone, approve it; otherwise please try again in a moment.";
+const MSG_WAITING = "Waiting for payment confirmation... Do not close this window.";
+const MSG_STILL_CHECKING = "Still checking. If you approved the payment, your voucher will also be sent by SMS.";
+const MSG_STOPPED_CHECKING = "We haven't had a final answer yet. If you approved the payment, your voucher will be sent by SMS. Tap \"Check again\" to look again.";
+const MSG_PURCHASE_NOT_FOUND = "We couldn't find this purchase. If you approved a payment, your voucher will be sent by SMS.";
+
+function setPayButton(label, enabled) {
+  btnSubmitEcocash.textContent = label;
+  btnSubmitEcocash.disabled = !enabled;
+}
+
+function showCheckAgain(show) {
+  if (btnCheckAgain) btnCheckAgain.style.display = show ? "" : "none";
+}
+
+// First readable message in an error body (server message, or the first validation error)
+function serverErrorMessage(errorResponse, fallback) {
+  if (errorResponse && errorResponse.message) return errorResponse.message;
+  if (errorResponse && errorResponse.errors) {
+    const firstErrorKey = Object.keys(errorResponse.errors)[0];
+    const firstError = firstErrorKey && errorResponse.errors[firstErrorKey];
+    if (Array.isArray(firstError) && firstError[0]) return firstError[0];
+    if (typeof firstError === 'string') return firstError;
+  }
+  return fallback;
+}
+
+// Handle EcoCash payment submission: sends exactly one /buy request per tap
+function handleEcocashSubmit() {
+  if (paymentRequestInFlight) {
+    showHint("modal-hint", "Your payment request is still being sent. Please wait.", "info");
+    return;
+  }
+  if (pollingActive) return;
+
   var selectedVoucherId = selectPackage.value;
   var ecocashNumberInput = document.getElementById("ecocash-number");
 
@@ -838,198 +896,247 @@ function handleEcocashSubmitWithRetry() {
     client_mac: clientMac,
   };
 
-  btnSubmitEcocash.textContent = "Processing...";
-  btnSubmitEcocash.disabled = true;
-  showHint("modal-hint", "Initiating payment... Please wait.", "info");
+  paymentRequestInFlight = true;
+  showCheckAgain(false);
+  setPayButton("Processing...", false);
+  showHint("modal-hint", "Sending the payment request to EcoCash... Please wait.", "info");
 
-  // Set up retry mechanism
-  var retryCount = 0;
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 3000; // 3 seconds
-
-  function attemptPaymentRequest() {
-    // Use the improved fetch with fallback function
-    improvedFetchWithFallback(
-      `${API_BASE_URL}/buy`,
-      {
-        method: 'POST',
-        body: buyData
-      },
-      function (response) {
-        showHint("modal-hint", response.message + " Please check your phone to authorize.", "info");
-        if (response.transaction_id && response.check_status_url) {
-          pollTransactionStatus(response.transaction_id, response.check_status_url);
-        } else {
-          showHint("modal-hint", "Payment initiated, but could not get transaction ID for status check.", "error");
-          btnSubmitEcocash.textContent = "Pay Now";
-          btnSubmitEcocash.disabled = false;
-        }
-      },
-      function (errorResponse, status) {
-        console.error("Error buying voucher:", status, errorResponse);
-        let errMsg = "Failed to initiate purchase.";
-        if (errorResponse && errorResponse.message) {
-          errMsg = errorResponse.message;
-        } else if (errorResponse && errorResponse.errors) {
-          const firstErrorKey = Object.keys(errorResponse.errors)[0];
-          errMsg = errorResponse.errors[firstErrorKey][0];
-        }
-
-        if (retryCount < MAX_RETRIES) {
-          retryCount++;
-          showHint("modal-hint", `${errMsg} Retrying... (Attempt ${retryCount}/${MAX_RETRIES})`, "info");
-          setTimeout(attemptPaymentRequest, RETRY_DELAY);
-        } else {
-          showHint("modal-hint", `${errMsg} Maximum retries reached. Please try again later.`, "error");
-          btnSubmitEcocash.textContent = "Pay Now";
-          btnSubmitEcocash.disabled = false;
-        }
+  improvedFetchWithFallback(
+    `${API_BASE_URL}/buy`,
+    {
+      method: 'POST',
+      body: buyData,
+      timeout: BUY_TIMEOUT_MS
+    },
+    function (response, status) {
+      paymentRequestInFlight = false;
+      // 201: new purchase. 202: the start's outcome is not known yet, or this device already
+      // has a prompt waiting. Either way there is a purchase to follow: poll it.
+      if (response && response.check_status_url) {
+        startPolling(
+          response.reference || response.transaction_id,
+          response.check_status_url,
+          response.message || "EcoCash payment initiated. Please authorize on your phone."
+        );
+      } else {
+        console.warn("Buy answered " + status + " without a status URL:", response);
+        showHint("modal-hint", MSG_START_UNCONFIRMED, "info");
+        setPayButton("Try again", true);
       }
-    );
-  }
-
-  // Start the payment request process
-  attemptPaymentRequest();
+    },
+    function (errorResponse, status) {
+      paymentRequestInFlight = false;
+      console.error("Error buying voucher:", status, errorResponse);
+      handleBuyError(errorResponse || {}, status);
+    }
+  );
 }
 
-// Polling for transaction status with improved handling
-let pollingInterval;
-let pollAttempts = 0;
-const MAX_POLL_ATTEMPTS = 20;
-const POLL_INTERVAL_MS = 6000;
+// Show why /buy did not start a purchase. Never re-sends the request.
+function handleBuyError(errorResponse, status) {
+  if (status === 409) {
+    // Another prompt is already waiting for this number: approve or decline it first
+    showHint("modal-hint", serverErrorMessage(errorResponse, "A payment prompt for this number is already waiting. Approve it on your phone, or try again in a few minutes."), "info");
+    setPayButton("Pay Now", true);
+  } else if (status === 422 || status === 400) {
+    // Definite refusal (low balance, bad number, invalid input): fix and try again
+    showHint("modal-hint", serverErrorMessage(errorResponse, "We couldn't start your payment. Please check your details and try again."), "error");
+    setPayButton("Pay Now", true);
+  } else if (status === 503) {
+    // Payment start is paused: nothing was created or charged
+    showHint("modal-hint", serverErrorMessage(errorResponse, "We couldn't start your payment right now. Please try again in a moment."), "info");
+    setPayButton("Pay Now", true);
+  } else if (status === 429) {
+    showHint("modal-hint", "Too many attempts. Please wait a minute, then try again.", "info");
+    setPayButton("Pay Now", true);
+  } else if (status === 500) {
+    showHint("modal-hint", MSG_START_FAILED, "info");
+    setPayButton("Try again", true);
+  } else if (status >= 400 && status < 500 && status !== 408) {
+    showHint("modal-hint", serverErrorMessage(errorResponse, "We couldn't start your payment. Please try again."), "error");
+    setPayButton("Pay Now", true);
+  } else {
+    // No answer (network error, timeout) or a gateway error: the request may have reached
+    // the server, so the outcome is unknown. The user decides whether to try again.
+    showHint("modal-hint", MSG_START_UNCONFIRMED, "info");
+    setPayButton("Try again", true);
+  }
+}
 
-function pollTransactionStatus(transactionId, statusUrl) {
-  if (pollingInterval) clearInterval(pollingInterval);
-  pollAttempts = 0;
-  let successfulPollsCount = 0;
-
-  showHint("modal-hint", "Waiting for payment confirmation... Do not close this window.", "info");
-
-  // Storage mechanism for offline recovery
+function savePendingPurchase(purchaseId, statusUrl) {
   try {
-    localStorage.setItem('pendingTransactionId', transactionId);
+    localStorage.setItem('pendingTransactionId', String(purchaseId));
     localStorage.setItem('pendingStatusUrl', statusUrl);
     localStorage.setItem('pendingTimestamp', Date.now().toString());
   } catch (e) {
     console.warn("Could not save transaction details to localStorage:", e);
   }
+}
 
-  pollingInterval = setInterval(function () {
-    pollAttempts++;
+function clearPendingPurchase() {
+  try {
+    localStorage.removeItem('pendingTransactionId');
+    localStorage.removeItem('pendingStatusUrl');
+    localStorage.removeItem('pendingTimestamp');
+  } catch (e) {
+    console.warn("Could not clear transaction from localStorage:", e);
+  }
+}
 
-    // Show a more user-friendly progress indicator
-    const dotsCount = (pollAttempts % 4);
-    const dots = '.'.repeat(dotsCount);
-    const progressPercent = Math.min(Math.round((pollAttempts / MAX_POLL_ATTEMPTS) * 100), 100);
+function stopPolling() {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = null;
+  pollingActive = false;
+  pollRun++;
+}
 
-    showHint("modal-hint", `Checking payment status${dots} (${progressPercent}%)`, "info");
+// Follow a purchase until it completes or fails: every 3 s for 2 minutes, then every 10 s,
+// for up to 15 minutes. Waiting longer is never reported as a failure.
+function startPolling(purchaseId, statusUrl, initialMessage) {
+  stopPolling();
+  currentPurchaseId = purchaseId;
+  currentStatusUrl = statusUrl;
+  lastServerMessage = initialMessage || "";
+  pollStartedAt = Date.now();
+  completedPolls = 0;
+  pollingActive = true;
 
-    if (pollAttempts > MAX_POLL_ATTEMPTS) {
-      clearInterval(pollingInterval);
-      showHint("modal-hint", "Payment check timed out. Your payment might still be processing. Please check your EcoCash messages or contact support if debited.", "error");
-      btnSubmitEcocash.textContent = "Pay Now";
-      btnSubmitEcocash.disabled = false;
+  showCheckAgain(false);
+  setPayButton("Processing...", false);
+  showHint("modal-hint", lastServerMessage || MSG_WAITING, "info");
+  savePendingPurchase(purchaseId, statusUrl);
+
+  scheduleNextPoll(POLL_FAST_MS);
+}
+
+function isLongWait() {
+  return Date.now() - pollStartedAt >= POLL_FAST_FOR_MS;
+}
+
+function nextPollDelay() {
+  return isLongWait() ? POLL_SLOW_MS : POLL_FAST_MS;
+}
+
+function scheduleNextPoll(delay) {
+  const run = pollRun;
+  pollTimer = setTimeout(function () {
+    pollTimer = null;
+    pollTransactionStatus(run);
+  }, delay);
+}
+
+// Latest server message, plus a calm line once the wait gets long
+function showWaitingHint() {
+  let text = lastServerMessage || MSG_WAITING;
+  if (isLongWait()) text += "\n" + MSG_STILL_CHECKING;
+  showHint("modal-hint", text, "info");
+}
+
+// Max wait reached: stop asking, but don't claim anything failed
+function stopAfterMaxWait() {
+  stopPolling();
+  showHint("modal-hint", (lastServerMessage ? lastServerMessage + "\n" : "") + MSG_STOPPED_CHECKING, "info");
+  showCheckAgain(true);
+  setPayButton("Pay Now", true);
+}
+
+function pollTransactionStatus(run) {
+  if (run !== pollRun) return;
+  if (Date.now() - pollStartedAt >= POLL_MAX_WAIT_MS) {
+    stopAfterMaxWait();
+    return;
+  }
+
+  improvedFetchWithFallback(
+    currentStatusUrl,
+    { method: 'GET' },
+    function (response) {
+      if (run !== pollRun) return; // modal closed or a newer run started
+      handleStatusResponse(response || {}, run);
+    },
+    function (errorResponse, status) {
+      if (run !== pollRun) return;
+      console.error("Error polling status:", status, errorResponse);
+
+      if (status === 404) {
+        stopPolling();
+        clearPendingPurchase();
+        showHint("modal-hint", MSG_PURCHASE_NOT_FOUND, "info");
+        setPayButton("Pay Now", true);
+        return;
+      }
+
+      // Temporary problem (connection, server busy): keep the last message and check again later
+      showWaitingHint();
+      scheduleNextPoll(POLL_SLOW_MS);
+    }
+  );
+}
+
+function handleStatusResponse(response, run) {
+  if (response.message) lastServerMessage = response.message;
+
+  if (response.status === "completed") {
+    completedPolls++;
+
+    // Wait for two consecutive successful "completed" statuses to avoid race conditions
+    if (completedPolls < 2) {
+      showHint("modal-hint", "Received completion status. Confirming...", "info");
+      scheduleNextPoll(POLL_FAST_MS);
       return;
     }
 
-    // Add cache busting to status URL
-    const cacheBustUrl = statusUrl + (statusUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+    stopPolling();
+    clearPendingPurchase();
+    showHint("modal-hint", "Purchase Successful! Voucher details sent via SMS.", "success");
 
-    // Use improved fetch with fallback
-    improvedFetchWithFallback(
-      cacheBustUrl,
-      { method: 'GET' },
-      function (response) {
-        // Clear stored transaction if we get any response
-        try {
-          if (localStorage.getItem('pendingTransactionId') === transactionId) {
-            localStorage.removeItem('pendingTransactionId');
-            localStorage.removeItem('pendingStatusUrl');
-            localStorage.removeItem('pendingTimestamp');
-          }
-        } catch (e) {
-          console.warn("Could not clear transaction from localStorage:", e);
-        }
+    let receivedVoucherCode = "";
+    // Path adjustments based on your API response for completed transaction
+    if (response.vouchers_details && response.vouchers_details.pin) {
+      receivedVoucherCode = response.vouchers_details.pin;
+    } else if (response.receipt && response.receipt.vouchers &&
+      Array.isArray(response.receipt.vouchers) &&
+      response.receipt.vouchers.length > 0 &&
+      response.receipt.vouchers[0].pin) {
+      receivedVoucherCode = response.receipt.vouchers[0].pin;
+    } else {
+      console.warn("Could not find PIN in voucher_details or receipt. API Response:", response);
+      showHint("modal-hint", "Purchase successful! Voucher sent. Check SMS for PIN.", "success");
+    }
 
-        if (response.status === "completed") {
-          successfulPollsCount++;
+    // Sanitize the received voucher code by removing spaces
+    if (receivedVoucherCode) {
+      receivedVoucherCode = sanitizeVoucherCode(receivedVoucherCode);
+      document.getElementById("voucherCode").value = receivedVoucherCode;
+      copyToClipboard(receivedVoucherCode);
+    }
 
-          // Wait for two consecutive successful "completed" statuses to avoid race conditions
-          if (successfulPollsCount >= 2) {
-            clearInterval(pollingInterval);
-            showHint("modal-hint", "Purchase Successful! Voucher details sent via SMS.", "success");
-
-            let receivedVoucherCode = "";
-            // Path adjustments based on your API response for completed transaction
-            if (response.vouchers_details && response.vouchers_details.pin) {
-              receivedVoucherCode = response.vouchers_details.pin;
-            } else if (response.receipt && response.receipt.vouchers &&
-              Array.isArray(response.receipt.vouchers) &&
-              response.receipt.vouchers.length > 0 &&
-              response.receipt.vouchers[0].pin) {
-              receivedVoucherCode = response.receipt.vouchers[0].pin;
-            } else {
-              console.warn("Could not find PIN in voucher_details or receipt. API Response:", response);
-              showHint("modal-hint", "Purchase successful! Voucher sent. Check SMS for PIN.", "success");
-            }
-
-            // Sanitize the received voucher code by removing spaces
-            if (receivedVoucherCode) {
-              receivedVoucherCode = sanitizeVoucherCode(receivedVoucherCode);
-              document.getElementById("voucherCode").value = receivedVoucherCode;
-              copyToClipboard(receivedVoucherCode);
-            }
-
-            setTimeout(function () {
-              modal.classList.remove("active");
-              resetModal();
-              if (receivedVoucherCode) {
-                showHint("oper-hint", "Voucher purchased! Connecting with new voucher...", "success");
-                handlePortalSubmit();
-              } else {
-                showHint("oper-hint", "Voucher purchased! Please check SMS for your voucher code and enter it manually.", "success");
-              }
-            }, 3000);
-          } else {
-            // Wait for another poll to confirm
-            showHint("modal-hint", "Received completion status. Confirming...", "info");
-          }
-        } else if (response.status === "failed") {
-          clearInterval(pollingInterval);
-          let failMsg = "Payment Failed.";
-          if (response.error_details) failMsg += ` Reason: ${response.error_details}`;
-          else if (response.payment_details && response.payment_details.failure_reason)
-            failMsg += ` Reason: ${response.payment_details.failure_reason}`;
-
-          showHint("modal-hint", failMsg, "error");
-          btnSubmitEcocash.textContent = "Pay Now";
-          btnSubmitEcocash.disabled = false;
-        } else {
-          // Reset the success counter for non-completed statuses
-          successfulPollsCount = 0;
-          showHint("modal-hint", `Payment ${response.status}. Waiting for confirmation... Attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS}`, "info");
-        }
-      },
-      function (errorResponse, status) {
-        console.error("Error polling status:", status, errorResponse);
-        // Decrease polling frequency when errors occur
-        if (pollAttempts > 5) {
-          clearInterval(pollingInterval);
-          // Set up a longer interval
-          pollingInterval = setInterval(arguments.callee, POLL_INTERVAL_MS * 2);
-        }
-
-        if (status === 404 && pollAttempts > 5) {
-          clearInterval(pollingInterval);
-          showHint("modal-hint", "Transaction check failed (not found). Please contact support.", "error");
-          btnSubmitEcocash.textContent = "Pay Now";
-          btnSubmitEcocash.disabled = false;
-        } else if (status !== 404) {
-          showHint("modal-hint", `Error checking status: ${(errorResponse && errorResponse.message) || 'Retrying...'}. Attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS}`, "error");
-        }
+    setTimeout(function () {
+      modal.classList.remove("active");
+      resetModal();
+      if (receivedVoucherCode) {
+        showHint("oper-hint", "Voucher purchased! Connecting with new voucher...", "success");
+        handlePortalSubmit();
+      } else {
+        showHint("oper-hint", "Voucher purchased! Please check SMS for your voucher code and enter it manually.", "success");
       }
-    );
-  }, POLL_INTERVAL_MS);
+    }, 3000);
+  } else if (response.status === "failed") {
+    // Only returned when the server knows no money was taken: show its message as given
+    stopPolling();
+    clearPendingPurchase();
+    let failMsg = response.message || "Payment Failed.";
+    if (response.error_details && failMsg.indexOf(response.error_details) === -1) {
+      failMsg += ` Reason: ${response.error_details}`;
+    }
+    showHint("modal-hint", failMsg, "error");
+    setPayButton("Pay Now", true);
+  } else {
+    // pending / processing (or anything else): keep waiting, this can take minutes
+    completedPolls = 0;
+    showWaitingHint();
+    scheduleNextPoll(nextPollDelay());
+  }
 }
 
 // Function to check for and recover interrupted transactions
@@ -1049,23 +1156,15 @@ function checkForInterruptedTransactions() {
         // Ask user if they want to check status
         if (confirm("We detected an unfinished payment from earlier. Would you like to check its status?")) {
           modal.classList.add("active");
-          showHint("modal-hint", "Checking status of previous payment...", "info");
-          btnSubmitEcocash.textContent = "Processing...";
-          btnSubmitEcocash.disabled = true;
-
           // Start polling with the saved information
-          pollTransactionStatus(pendingTransactionId, pendingStatusUrl);
+          startPolling(pendingTransactionId, pendingStatusUrl, "Checking status of previous payment...");
         } else {
           // User declined, clear the stored transaction
-          localStorage.removeItem('pendingTransactionId');
-          localStorage.removeItem('pendingStatusUrl');
-          localStorage.removeItem('pendingTimestamp');
+          clearPendingPurchase();
         }
       } else {
         // Transaction is too old, clear it
-        localStorage.removeItem('pendingTransactionId');
-        localStorage.removeItem('pendingStatusUrl');
-        localStorage.removeItem('pendingTimestamp');
+        clearPendingPurchase();
       }
     }
   } catch (e) {
@@ -1144,7 +1243,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  btnSubmitEcocash.addEventListener("click", handleEcocashSubmitWithRetry);
+  btnSubmitEcocash.addEventListener("click", handleEcocashSubmit);
+
+  if (btnCheckAgain) {
+    btnCheckAgain.addEventListener("click", function () {
+      if (currentStatusUrl) {
+        startPolling(currentPurchaseId, currentStatusUrl, lastServerMessage);
+      }
+    });
+  }
 
   // Online/offline event listeners
   window.addEventListener("online", function () {

@@ -432,6 +432,7 @@ tfoot tr td {
   text-align: center;
   margin-bottom: 10px;
   min-height: 20px;
+  white-space: pre-line;
 }
 .modal-hint.error {
   color: var(--error);
