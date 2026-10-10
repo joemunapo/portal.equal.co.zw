@@ -109,6 +109,8 @@ function xhrRequest(url, options, successCallback, errorCallback) {
 // else, with status 0 when no answer arrived (network error or timeout).
 // Only GET requests are ever sent a second time (via XHR after a failed fetch). Any other
 // method is sent exactly once: a POST that may have reached the server is never re-sent.
+// options.onLateAnswer(data, status), if given, gets an answer to such a request that arrives
+// after its timeout was already reported.
 function improvedFetchWithFallback(url, options, successCallback, errorCallback) {
   const method = options.method || 'GET';
   const timeoutMs = options.timeout || 15000;
@@ -173,6 +175,12 @@ function improvedFetchWithFallback(url, options, successCallback, errorCallback)
       return response.text().then(text => {
         clearTimeout(timeoutId);
         const data = parseJsonSafely(text);
+        if (settled) {
+          if (method !== 'GET' && typeof options.onLateAnswer === 'function') {
+            options.onLateAnswer(data, response.status);
+          }
+          return;
+        }
         if (response.ok) {
           settle(successCallback, data, response.status);
         } else {
@@ -746,17 +754,17 @@ var selectPackage = document.getElementById("voucher-package");
 var ecocashForm = document.getElementById("ecocash-form");
 var btnCheckAgain = document.getElementById("check-again");
 
+var linkStartOver = document.getElementById("start-over");
+
+// Closing the modal never forgets an open purchase: its polling keeps running and reopening the
+// modal shows its latest state. Only a modal with nothing going on is cleared.
 function resetModal() {
   ecocashForm.reset();
-  showHint("modal-hint", "", "info");
-  stopPolling();
-  showCheckAgain(false);
-  // A /buy request still on its way keeps the button locked until it answers
-  if (paymentRequestInFlight) {
-    setPayButton("Processing...", false);
-  } else {
+  if (!currentPurchase && !paymentRequestInFlight) {
+    setPaymentHint("", "info");
     setPayButton("Pay Now", true);
   }
+  updatePaymentControls();
 }
 
 // Populate the modal's select dropdown using pre-fetched data
@@ -813,27 +821,30 @@ function formatEcocashNumber(number) {
 // Payment flow state
 // One /buy request per user action: nothing here re-sends it automatically. The backend keeps one
 // open EcoCash prompt per phone, so a manual "Try again" from this device returns the waiting purchase.
+// A purchase that is still pending or processing is remembered (also across reloads) until it is
+// completed, failed or not found; until then the modal follows it and does not offer Pay Now.
 let paymentRequestInFlight = false;
+let buyAttempt = 0; // bumped on every /buy tap so a late answer from an older tap is ignored
 let pollTimer = null;
 let pollingActive = false;
 let pollRun = 0; // bumped on every start/stop so answers from an earlier run are ignored
 let pollStartedAt = 0;
 let completedPolls = 0;
-let currentPurchaseId = null;
-let currentStatusUrl = null;
-let lastServerMessage = "";
+let currentPurchase = null; // { id, statusUrl, lastStatus, lastMessage, startedAt }
+let paymentHint = { text: "", type: "info" }; // latest payment message, restored when the modal reopens
 
 const BUY_TIMEOUT_MS = 75000; // the server waits up to ~60 s for EcoCash to accept the request
 const POLL_FAST_MS = 3000; // every 3 s ...
 const POLL_FAST_FOR_MS = 2 * 60 * 1000; // ... for the first 2 minutes
 const POLL_SLOW_MS = 10000; // then every 10 s ...
 const POLL_MAX_WAIT_MS = 15 * 60 * 1000; // ... for up to 15 minutes
+const START_OVER_AFTER_MS = 10 * 60 * 1000; // a pending purchase this old may be set aside
 
 const MSG_START_UNCONFIRMED = "We couldn't confirm your payment started. If a prompt appears on your phone, approve it.";
-const MSG_START_FAILED = "We couldn't start your payment right now. If a prompt appears on your phone, approve it; otherwise please try again in a moment.";
+const MSG_START_FAILED = "We couldn't start your payment right now. Please try again in a moment.";
 const MSG_WAITING = "Waiting for payment confirmation... Do not close this window.";
 const MSG_STILL_CHECKING = "Still checking. If you approved the payment, your voucher will also be sent by SMS.";
-const MSG_STOPPED_CHECKING = "We haven't had a final answer yet. If you approved the payment, your voucher will be sent by SMS. Tap \"Check again\" to look again.";
+const MSG_STOPPED_CHECKING = "If you approved the payment, your voucher will be sent by SMS. Tap \"Check again\" for the latest.";
 const MSG_PURCHASE_NOT_FOUND = "We couldn't find this purchase. If you approved a payment, your voucher will be sent by SMS.";
 
 function setPayButton(label, enabled) {
@@ -843,6 +854,35 @@ function setPayButton(label, enabled) {
 
 function showCheckAgain(show) {
   if (btnCheckAgain) btnCheckAgain.style.display = show ? "" : "none";
+}
+
+// Payment messages go through here so they can be restored after the modal is reopened
+function setPaymentHint(text, type) {
+  paymentHint = { text: text, type: type };
+  showHint("modal-hint", text, type);
+}
+
+function restorePaymentHint() {
+  if (paymentHint.text) showHint("modal-hint", paymentHint.text, paymentHint.type);
+}
+
+// Only a purchase still waiting for the customer (never one already paid) may be set aside
+function canStartOver() {
+  return !!currentPurchase && currentPurchase.lastStatus === "pending" &&
+    Date.now() - currentPurchase.startedAt >= START_OVER_AFTER_MS;
+}
+
+// Buttons for the current state: an open purchase hides Pay Now and offers "Check again"
+// whenever it is not being checked right now
+function updatePaymentControls() {
+  if (currentPurchase) {
+    btnSubmitEcocash.style.display = "none";
+    showCheckAgain(!pollingActive);
+  } else {
+    btnSubmitEcocash.style.display = "";
+    showCheckAgain(false);
+  }
+  if (linkStartOver) linkStartOver.style.display = canStartOver() ? "" : "none";
 }
 
 // First readable message in an error body (server message, or the first validation error)
@@ -863,7 +903,12 @@ function handleEcocashSubmit() {
     showHint("modal-hint", "Your payment request is still being sent. Please wait.", "info");
     return;
   }
-  if (pollingActive) return;
+  if (currentPurchase) {
+    // Never a second payment while this one may still go through
+    restorePaymentHint();
+    updatePaymentControls();
+    return;
+  }
 
   var selectedVoucherId = selectPackage.value;
   var ecocashNumberInput = document.getElementById("ecocash-number");
@@ -885,7 +930,7 @@ function handleEcocashSubmit() {
   ecocashNumber = formatEcocashNumber(ecocashNumber);
   ecocashNumberInput.value = ecocashNumber;
   if (!ecocashNumberInput.checkValidity()) {
-    showHint("modal-hint", "Enter a valid EcoCash number starting with 077, 078 or 079.", "error");
+    showHint("modal-hint", "Enter a valid EcoCash number starting with 077, 078, 0790 or 0791.", "error");
     ecocashNumberInput.focus();
     return;
   }
@@ -896,38 +941,53 @@ function handleEcocashSubmit() {
     client_mac: clientMac,
   };
 
+  const attempt = ++buyAttempt;
   paymentRequestInFlight = true;
-  showCheckAgain(false);
   setPayButton("Processing...", false);
-  showHint("modal-hint", "Sending the payment request to EcoCash... Please wait.", "info");
+  updatePaymentControls();
+  setPaymentHint("Sending the payment request to EcoCash... Please wait.", "info");
+
+  // 201: new purchase. 202: the start's outcome is not known yet, or this device already
+  // has a prompt waiting. Either way there is a purchase to follow: poll it.
+  function followPurchase(response) {
+    startPolling(
+      response.reference || response.transaction_id,
+      response.check_status_url,
+      response.message || "EcoCash payment initiated. Please authorize on your phone.",
+      response.status
+    );
+  }
 
   improvedFetchWithFallback(
     `${API_BASE_URL}/buy`,
     {
       method: 'POST',
       body: buyData,
-      timeout: BUY_TIMEOUT_MS
+      timeout: BUY_TIMEOUT_MS,
+      // The answer came after we gave up waiting: follow it if nothing newer was started
+      onLateAnswer: function (response, status) {
+        if (attempt !== buyAttempt || paymentRequestInFlight || currentPurchase) return;
+        if (status >= 200 && status < 300 && response && response.check_status_url) {
+          followPurchase(response);
+        }
+      }
     },
     function (response, status) {
       paymentRequestInFlight = false;
-      // 201: new purchase. 202: the start's outcome is not known yet, or this device already
-      // has a prompt waiting. Either way there is a purchase to follow: poll it.
       if (response && response.check_status_url) {
-        startPolling(
-          response.reference || response.transaction_id,
-          response.check_status_url,
-          response.message || "EcoCash payment initiated. Please authorize on your phone."
-        );
+        followPurchase(response);
       } else {
         console.warn("Buy answered " + status + " without a status URL:", response);
-        showHint("modal-hint", MSG_START_UNCONFIRMED, "info");
+        setPaymentHint(MSG_START_UNCONFIRMED, "info");
         setPayButton("Try again", true);
+        updatePaymentControls();
       }
     },
     function (errorResponse, status) {
       paymentRequestInFlight = false;
       console.error("Error buying voucher:", status, errorResponse);
       handleBuyError(errorResponse || {}, status);
+      updatePaymentControls();
     }
   );
 }
@@ -936,38 +996,38 @@ function handleEcocashSubmit() {
 function handleBuyError(errorResponse, status) {
   if (status === 409) {
     // Another prompt is already waiting for this number: approve or decline it first
-    showHint("modal-hint", serverErrorMessage(errorResponse, "A payment prompt for this number is already waiting. Approve it on your phone, or try again in a few minutes."), "info");
+    setPaymentHint(serverErrorMessage(errorResponse, "A payment prompt for this number is already waiting. Approve it on your phone, or try again in a few minutes."), "info");
     setPayButton("Pay Now", true);
   } else if (status === 422 || status === 400) {
     // Definite refusal (low balance, bad number, invalid input): fix and try again
-    showHint("modal-hint", serverErrorMessage(errorResponse, "We couldn't start your payment. Please check your details and try again."), "error");
+    setPaymentHint(serverErrorMessage(errorResponse, "We couldn't start your payment. Please check your details and try again."), "error");
     setPayButton("Pay Now", true);
-  } else if (status === 503) {
-    // Payment start is paused: nothing was created or charged
-    showHint("modal-hint", serverErrorMessage(errorResponse, "We couldn't start your payment right now. Please try again in a moment."), "info");
+  } else if (status === 503 || status === 500) {
+    // 503: payment start paused. 500: failed before any purchase existed. Nothing was charged.
+    setPaymentHint(serverErrorMessage(errorResponse, MSG_START_FAILED), "info");
     setPayButton("Pay Now", true);
   } else if (status === 429) {
-    showHint("modal-hint", "Too many attempts. Please wait a minute, then try again.", "info");
+    setPaymentHint("Too many attempts. Please wait a minute, then try again.", "info");
     setPayButton("Pay Now", true);
-  } else if (status === 500) {
-    showHint("modal-hint", MSG_START_FAILED, "info");
-    setPayButton("Try again", true);
   } else if (status >= 400 && status < 500 && status !== 408) {
-    showHint("modal-hint", serverErrorMessage(errorResponse, "We couldn't start your payment. Please try again."), "error");
+    setPaymentHint(serverErrorMessage(errorResponse, "We couldn't start your payment. Please try again."), "error");
     setPayButton("Pay Now", true);
   } else {
     // No answer (network error, timeout) or a gateway error: the request may have reached
     // the server, so the outcome is unknown. The user decides whether to try again.
-    showHint("modal-hint", MSG_START_UNCONFIRMED, "info");
+    setPaymentHint(MSG_START_UNCONFIRMED, "info");
     setPayButton("Try again", true);
   }
 }
 
-function savePendingPurchase(purchaseId, statusUrl) {
+function savePendingPurchase() {
+  if (!currentPurchase) return;
   try {
-    localStorage.setItem('pendingTransactionId', String(purchaseId));
-    localStorage.setItem('pendingStatusUrl', statusUrl);
-    localStorage.setItem('pendingTimestamp', Date.now().toString());
+    localStorage.setItem('pendingTransactionId', String(currentPurchase.id));
+    localStorage.setItem('pendingStatusUrl', currentPurchase.statusUrl);
+    localStorage.setItem('pendingTimestamp', String(currentPurchase.startedAt));
+    localStorage.setItem('pendingLastStatus', currentPurchase.lastStatus || '');
+    localStorage.setItem('pendingLastMessage', currentPurchase.lastMessage || '');
   } catch (e) {
     console.warn("Could not save transaction details to localStorage:", e);
   }
@@ -978,9 +1038,20 @@ function clearPendingPurchase() {
     localStorage.removeItem('pendingTransactionId');
     localStorage.removeItem('pendingStatusUrl');
     localStorage.removeItem('pendingTimestamp');
+    localStorage.removeItem('pendingLastStatus');
+    localStorage.removeItem('pendingLastMessage');
   } catch (e) {
     console.warn("Could not clear transaction from localStorage:", e);
   }
+}
+
+// The purchase reached an end (completed, failed, not found): forget it and free Pay Now
+function finishPurchase() {
+  stopPolling();
+  currentPurchase = null;
+  clearPendingPurchase();
+  setPayButton("Pay Now", true);
+  updatePaymentControls();
 }
 
 function stopPolling() {
@@ -992,19 +1063,24 @@ function stopPolling() {
 
 // Follow a purchase until it completes or fails: every 3 s for 2 minutes, then every 10 s,
 // for up to 15 minutes. Waiting longer is never reported as a failure.
-function startPolling(purchaseId, statusUrl, initialMessage) {
+function startPolling(purchaseId, statusUrl, initialMessage, initialStatus, startedAt) {
   stopPolling();
-  currentPurchaseId = purchaseId;
-  currentStatusUrl = statusUrl;
-  lastServerMessage = initialMessage || "";
+  const samePurchase = currentPurchase && currentPurchase.statusUrl === statusUrl;
+  currentPurchase = {
+    id: purchaseId,
+    statusUrl: statusUrl,
+    lastStatus: initialStatus || (samePurchase ? currentPurchase.lastStatus : "pending"),
+    lastMessage: initialMessage || (samePurchase ? currentPurchase.lastMessage : ""),
+    startedAt: startedAt || (samePurchase ? currentPurchase.startedAt : Date.now()),
+  };
   pollStartedAt = Date.now();
   completedPolls = 0;
   pollingActive = true;
 
-  showCheckAgain(false);
   setPayButton("Processing...", false);
-  showHint("modal-hint", lastServerMessage || MSG_WAITING, "info");
-  savePendingPurchase(purchaseId, statusUrl);
+  updatePaymentControls();
+  setPaymentHint(currentPurchase.lastMessage || MSG_WAITING, "info");
+  savePendingPurchase();
 
   scheduleNextPoll(POLL_FAST_MS);
 }
@@ -1027,31 +1103,36 @@ function scheduleNextPoll(delay) {
 
 // Latest server message, plus a calm line once the wait gets long
 function showWaitingHint() {
-  let text = lastServerMessage || MSG_WAITING;
+  let text = (currentPurchase && currentPurchase.lastMessage) || MSG_WAITING;
   if (isLongWait()) text += "\n" + MSG_STILL_CHECKING;
-  showHint("modal-hint", text, "info");
+  setPaymentHint(text, "info");
 }
 
-// Max wait reached: stop asking, but don't claim anything failed
+// Not checking right now (max wait reached, or resumed from an earlier visit): show the latest
+// server message and "Check again". Never claims anything failed, never offers Pay Now.
+function showStoppedState() {
+  const latest = currentPurchase && currentPurchase.lastMessage;
+  setPaymentHint((latest ? latest + "\n" : "") + MSG_STOPPED_CHECKING, "info");
+  updatePaymentControls();
+}
+
 function stopAfterMaxWait() {
   stopPolling();
-  showHint("modal-hint", (lastServerMessage ? lastServerMessage + "\n" : "") + MSG_STOPPED_CHECKING, "info");
-  showCheckAgain(true);
-  setPayButton("Pay Now", true);
+  showStoppedState();
 }
 
 function pollTransactionStatus(run) {
-  if (run !== pollRun) return;
+  if (run !== pollRun || !currentPurchase) return;
   if (Date.now() - pollStartedAt >= POLL_MAX_WAIT_MS) {
     stopAfterMaxWait();
     return;
   }
 
   improvedFetchWithFallback(
-    currentStatusUrl,
+    currentPurchase.statusUrl,
     { method: 'GET' },
     function (response) {
-      if (run !== pollRun) return; // modal closed or a newer run started
+      if (run !== pollRun) return; // a newer run started or the purchase was set aside
       handleStatusResponse(response || {}, run);
     },
     function (errorResponse, status) {
@@ -1059,10 +1140,8 @@ function pollTransactionStatus(run) {
       console.error("Error polling status:", status, errorResponse);
 
       if (status === 404) {
-        stopPolling();
-        clearPendingPurchase();
-        showHint("modal-hint", MSG_PURCHASE_NOT_FOUND, "info");
-        setPayButton("Pay Now", true);
+        finishPurchase();
+        setPaymentHint(MSG_PURCHASE_NOT_FOUND, "info");
         return;
       }
 
@@ -1074,21 +1153,20 @@ function pollTransactionStatus(run) {
 }
 
 function handleStatusResponse(response, run) {
-  if (response.message) lastServerMessage = response.message;
+  if (response.message) currentPurchase.lastMessage = response.message;
 
   if (response.status === "completed") {
     completedPolls++;
 
     // Wait for two consecutive successful "completed" statuses to avoid race conditions
     if (completedPolls < 2) {
-      showHint("modal-hint", "Received completion status. Confirming...", "info");
+      setPaymentHint("Received completion status. Confirming...", "info");
       scheduleNextPoll(POLL_FAST_MS);
       return;
     }
 
-    stopPolling();
-    clearPendingPurchase();
-    showHint("modal-hint", "Purchase Successful! Voucher details sent via SMS.", "success");
+    finishPurchase();
+    setPaymentHint("Purchase Successful! Voucher details sent via SMS.", "success");
 
     let receivedVoucherCode = "";
     // Path adjustments based on your API response for completed transaction
@@ -1101,7 +1179,7 @@ function handleStatusResponse(response, run) {
       receivedVoucherCode = response.receipt.vouchers[0].pin;
     } else {
       console.warn("Could not find PIN in voucher_details or receipt. API Response:", response);
-      showHint("modal-hint", "Purchase successful! Voucher sent. Check SMS for PIN.", "success");
+      setPaymentHint("Purchase successful! Voucher sent. Check SMS for PIN.", "success");
     }
 
     // Sanitize the received voucher code by removing spaces
@@ -1113,6 +1191,7 @@ function handleStatusResponse(response, run) {
 
     setTimeout(function () {
       modal.classList.remove("active");
+      setPaymentHint("", "info");
       resetModal();
       if (receivedVoucherCode) {
         showHint("oper-hint", "Voucher purchased! Connecting with new voucher...", "success");
@@ -1123,23 +1202,34 @@ function handleStatusResponse(response, run) {
     }, 3000);
   } else if (response.status === "failed") {
     // Only returned when the server knows no money was taken: show its message as given
-    stopPolling();
-    clearPendingPurchase();
     let failMsg = response.message || "Payment Failed.";
     if (response.error_details && failMsg.indexOf(response.error_details) === -1) {
       failMsg += ` Reason: ${response.error_details}`;
     }
-    showHint("modal-hint", failMsg, "error");
-    setPayButton("Pay Now", true);
+    finishPurchase();
+    setPaymentHint(failMsg, "error");
   } else {
     // pending / processing (or anything else): keep waiting, this can take minutes
+    if (response.status === "pending" || response.status === "processing") {
+      currentPurchase.lastStatus = response.status;
+    }
+    savePendingPurchase();
     completedPolls = 0;
+    updatePaymentControls();
     showWaitingHint();
     scheduleNextPoll(nextPollDelay());
   }
 }
 
-// Function to check for and recover interrupted transactions
+// Set an old pending purchase aside so the customer can start a different payment
+function startOverPayment() {
+  if (!canStartOver()) return;
+  finishPurchase();
+  setPaymentHint("You can start a new payment.", "info");
+}
+
+// Resume a purchase left open on an earlier visit: open the modal and keep following it.
+// (No confirm() dialog: captive-portal webviews may answer it with "cancel" on their own.)
 function checkForInterruptedTransactions() {
   try {
     const pendingTransactionId = localStorage.getItem('pendingTransactionId');
@@ -1148,20 +1238,18 @@ function checkForInterruptedTransactions() {
 
     if (pendingTransactionId && pendingStatusUrl && pendingTimestamp) {
       // Check if the transaction is not too old (less than 24 hours)
-      const now = Date.now();
-      const timestamp = parseInt(pendingTimestamp, 10);
-      const ageInHours = (now - timestamp) / (1000 * 60 * 60);
+      const timestamp = parseInt(pendingTimestamp, 10) || Date.now();
+      const ageInHours = (Date.now() - timestamp) / (1000 * 60 * 60);
 
       if (ageInHours < 24) {
-        // Ask user if they want to check status
-        if (confirm("We detected an unfinished payment from earlier. Would you like to check its status?")) {
-          modal.classList.add("active");
-          // Start polling with the saved information
-          startPolling(pendingTransactionId, pendingStatusUrl, "Checking status of previous payment...");
-        } else {
-          // User declined, clear the stored transaction
-          clearPendingPurchase();
-        }
+        modal.classList.add("active");
+        startPolling(
+          pendingTransactionId,
+          pendingStatusUrl,
+          localStorage.getItem('pendingLastMessage') || "Checking the status of your earlier payment...",
+          localStorage.getItem('pendingLastStatus') || "pending",
+          timestamp
+        );
       } else {
         // Transaction is too old, clear it
         clearPendingPurchase();
@@ -1183,6 +1271,14 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("button-login")
     .addEventListener("click", handlePortalSubmit);
+
+  // Enter in a field must not submit the form: a reload would drop the Omada query parameters
+  document
+    .getElementById("login-form")
+    .addEventListener("submit", function (event) {
+      event.preventDefault();
+      handlePortalSubmit();
+    });
 
   // Event listener for input field to sanitize voucher codes on blur
   document
@@ -1221,6 +1317,9 @@ document.addEventListener("DOMContentLoaded", function () {
   btnEcocash.addEventListener("click", function () {
     modal.classList.add("active");
     populateVoucherPackagesForModal(); // Now uses the globally stored `availableVoucherPackages`
+    // Show the latest state of a purchase still open (or a request still being sent)
+    restorePaymentHint();
+    updatePaymentControls();
   });
 
   closeModalBtn.addEventListener("click", function () {
@@ -1238,6 +1337,7 @@ document.addEventListener("DOMContentLoaded", function () {
       setTimeout(() => {
         if (document.getElementById("modal-hint").textContent === "Please use the close button to exit") {
           showHint("modal-hint", "", "info");
+          restorePaymentHint();
         }
       }, 1000);
     }
@@ -1245,11 +1345,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
   btnSubmitEcocash.addEventListener("click", handleEcocashSubmit);
 
+  ecocashForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    handleEcocashSubmit();
+  });
+
   if (btnCheckAgain) {
     btnCheckAgain.addEventListener("click", function () {
-      if (currentStatusUrl) {
-        startPolling(currentPurchaseId, currentStatusUrl, lastServerMessage);
+      if (currentPurchase) {
+        startPolling(currentPurchase.id, currentPurchase.statusUrl);
       }
+    });
+  }
+
+  if (linkStartOver) {
+    linkStartOver.addEventListener("click", function (event) {
+      event.preventDefault();
+      startOverPayment();
     });
   }
 

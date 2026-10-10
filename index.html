@@ -157,7 +157,7 @@
               placeholder="EcoCash Number (e.g. 0771234567)"
               required
               pattern="^(?:0|\+?263)7(?:[78]\d|9[01])\d{6}$"
-              title="Enter a valid EcoCash number (077/078/079...)"
+              title="Enter a valid EcoCash number (077, 078, 0790 or 0791)"
             />
           </div>
           <button type="button" id="submit-ecocash" class="button">
@@ -171,6 +171,9 @@
           >
             Check again
           </button>
+          <a href="#" id="start-over" class="start-over-link" style="display: none">
+            This was a different payment? Start a new one
+          </a>
         </form>
       </div>
     </div>

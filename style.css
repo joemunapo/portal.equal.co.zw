@@ -437,6 +437,14 @@ tfoot tr td {
 .modal-hint.error {
   color: var(--error);
 }
+
+.start-over-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
 .modal-hint.success {
   color: var(--success);
 }
